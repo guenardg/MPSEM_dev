@@ -1,58 +1,9 @@
 #
 ### MPSEM package R functions and C wrappers
 #
-pop.graph <- function(n,vertex=list(),label=NULL) {
-  if(!is.list(vertex))
-    stop("Parameter vertex must be a list.")
-  if(length(vertex))
-    for(i in 1L:length(vertex))
-      if(length(vertex[[i]]) != n)
-        stop("Vertex property '",names(vertex)[i],"' has length ",length(vertex[[i]])," but the graph has ",n," vertices.")
-  if(!is.null(label)) {
-    if(is.character(label)) {
-      if(length(label) != n)
-        stop(length(label),"labels are provided, but",n,"are required.")
-    } else {
-      stop("Labels should be of type character.")
-    }
-  } else {
-    label = as.character(1L:n)
-  }
-  return(structure(list(edge=list(numeric(0L),numeric(0L)),
-                        vertex=vertex),
-                   ev=c(0L,n),
-                   class="graph",
-                   elabel=character(0L),
-                   vlabel=label))
-}
+
 #
-add.vertex <- function(x,n,vertex=list(),label=NULL) {
-  if(class(x) != "graph")
-    stop("Parameter x must be of class graph.")
-  if(!is.list(vertex))
-    stop("Values for vertices must be provided as a list.")
-  if(length(vertex))
-    for(i in 1L:length(vertex))
-      if(length(vertex[[i]]) != n)
-        stop("Vertex property '",names(vertex)[i],"' has length ",length(vertex[[i]])," but the ",n," vertices are to be added.")
-  if(!is.null(label)) {
-    if(is.character(label)) {
-      if(length(label) != n)
-        stop(length(label)," labels are provided, but ",n," are required.")
-    } else {
-      stop("Labels should be of type character.")
-    }
-  } else {
-    label = as.character(attr(x,"ev")[2L]+(1L:n))
-  }
-  for (i in names(x$vertex))
-    x$vertex[[i]] <- if(is.null(vertex[[i]])) c(x$vertex[[i]],rep(NA,n)) else c(x$vertex[[i]],vertex[[i]])
-  for (i in names(vertex))
-    x$vertex[[i]] <- if(is.null(x$vertex[[i]])) c(rep(NA,attr(x,"ev")[2L]),vertex[[i]]) else x$vertex[[i]]
-  attr(x,"ev")[2L] <- attr(x,"ev")[2L]+n
-  attr(x,"vlabel") <- c(attr(x,"vlabel"),label)
-  return(x)
-}
+
 #
 add.edge <- function(x,from,to,edge=list(),label=NULL) {
   if(class(x) != "graph")
@@ -208,25 +159,5 @@ Phylo2DirectedGraph <- function(tp) {
   if(!is.null(tp$root.edge))
     warning("The root edge of the tree has been omitted from the phylogenetic graph.")
   return(x)
-}
-#
-## graph printing method.
-print.graph <- function(x, ...) {
-  cat("\nA graph with",attr(x,"ev")[1],"edges and",attr(x,"ev")[2],"vertices.","\n")
-  if(!is.null(attr(x,"elabel")))
-    cat("Edge labels:",paste(attr(x,"elabel")),"\n")
-  if(!is.null(attr(x,"vlabel")))
-    cat("Vertex labels:",paste(attr(x,"vlabel")),"\n")
-  if(length(attr(x$edge,"names")>2)) {
-    cat("Available edge information: ",paste(attr(x$edge,"names")[-(1:2)],collapse=", "),"\n")
-  } else {
-    cat("No available edge information\n")
-  }
-  if(length(attr(x$vertex,"names")>0)) {
-    cat("Available vertex information: ",paste(attr(x$vertex,"names"),collapse=", "),"\n")
-  } else {
-    cat("No available vertex information\n")
-  }
-  cat("\n")
 }
 #
