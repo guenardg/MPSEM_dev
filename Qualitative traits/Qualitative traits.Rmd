@@ -75,7 +75,7 @@ Therefore, whereas
 
 # Method
 
-The following packages and `R` language code will be needed troughout the
+The following packages and `R` language code will be needed throughout the
 present research document:
 
 ```{r}

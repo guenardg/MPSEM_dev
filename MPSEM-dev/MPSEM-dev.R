@@ -9,6 +9,6 @@ compile <- function() {
   for(i in list.files("../MPSEM/R","*.R"))
     source(file.path("../MPSEM/R",i))
 }
-compile()
-## library(MPSEM)
+## compile()
+library(MPSEM)
 ##
