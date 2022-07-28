@@ -1,0 +1,220 @@
+# MPSEM – Notes et commentaires de PL, Mars 2022
+# Partie I – Les fichiers de documentation des fonctions
+
+Reference principale –
+
+Guénard, G., Legendre, P., and Peres-Neto, P. 2013. Phylogenetic eigenvector maps (PEM): a framework to model and predict species traits. Methods in Ecology and Evolution 4: 1120–1131.
+
+=> En lisant tes fichiers de documentation de MPSEM, je vois toute l'expérience que tu as acquise dans la rédaction de ces fichiers depuis que tu as écrit les fichiers de documentation de codep! Tu as fait du travail soigné.
+
+Réponse:
+
+Merci!
+
+J'ai ajouté un fichier inst/CITATION contenant la référence ci-dessus. J'ai vérifié les citations ailleurs dans les rubriques d'aide.
+
+# ========
+
+SVP ajouter des alias au début de la documentation de tous les fichiers dont le nom comporte un trait d'union:
+graph-class, graph-function, lm-utils, MPSEM-package, PEM-class, PEM-function, trait-simulator
+
+=> Suggestion: dans chacun des fichiers de fonctions, ajoute une fonction qui aura le nom voulu et qui ne fera absolument rien. Par exemple, pour MPSEM-package, ajoute la fonction suivante dans le fichier:
+   MPSEM <- function() NULL
+Cette fonction générera l'alias suivant dans le fichier de documentation MPSEM-package.Rd:
+   \alias{MPSEM}
+
+Si je tape [par exemple]  ?PEM-class  aucun fichier d'aide n'apparaît, à cause du trait d'union. Pour cet exemple particulier, il faudrait indiquer que PEN est un alisa de PEM-class. Je ne sais pas comment ajouter cela dans le code Roxygen2.
+
+Voici deux cas particuliers:
+• Documentation de PEM-functions: ajouter \alias{PEM}
+  pour que l'utilisateur qui tapera ?PEM obtienne la documentation de PEM-functions
+  
+• Même chose pour MPSEM-package, ajouter \alias{MPSEM} dans la liste des alias
+
+Il est très compliqué en ce moment d'avoir accès aux fichiers de documentation car les noms de ces fichiers comprennent tous un trait d'union et R n'accepte pas les traits d'union dans la commande Point d'interrogation. 
+
+En ce moment, il faut identifier un nom de fonction qui n'est pas le nom du fichier, par exemple
+?EvolveOptimMarkovTree
+Ce nom permet d'ouvrir un fichier de documentation. Dans le bas de ce fichier, je trouve l'Index. Celui-ci me donne accès, sur un Mac, à tous les fichiers de documentation. Ouf!
+
+Réponse: il faut taper ?`PEM-class` pour que ça passe dans l'interpréteur car le tiret est interprétable comme opérateur de soustraction, ce qui pose problème. Il y a aussi help() qui peut être employé pour tout nom contenant des caractères réservés (+-*/{}()^ et j'en passe). J'ai ajouté l'alias "MPSEM" au fichier MPSEM-package, "graph" au fichier graph-class et "PEM" au fichier PEM-class. De plus j'ai inclus des références croisées (dans le "@seealso") entre PEM-class et PEM-functions de même qu'entre graph-class et graph-functions. 
+
+# ========
+
+Vignette PEM_with_MPSEM.pdf
+
+Je trouve le caractère ("font") choisi pour le texte très difficile à lire. S'agit-il d'une police de caractères ultra-fine? Elle est plus fine que ce qui a été utilisé, par exemple, pour les documents de vignette de Roxygen2. Peux-tu contrôler le choix de la police pour ce fichier et en choisir une plus lisible?
+
+# ========
+
+PEM-functions.R
+
+Detaila, parag. 2, dernière phrase. Je ne comprends pas la partie suivante de la phrase: "while adding the same computational details that PEM.fitSimple would have produced".
+=> Que signifie "adding detaila"? Comment peut-on ajouter des détails? Préciser ou reformuler SVP. 
+=> Voudrais-tu dire "while making the function produce the same details as PEM.fitSimple would have produced; these details are necessary to make predictions" ? – J'ai temporairement recopié cette phrase dans le fichier. Tu peux la changer pour une autre formulation qui serait plus appropriée.
+
+Section Examples
+• S'agit-il d'Un seul exemple que tu complexifies en descendant les lignes, ou de plusieurs exemples?
+Peux-tu ajouter des lignes de commentaires précisant s'il s'agit de plusieurs exemples (e.g. Example 1, Example 2, ...) et indiquer la diffférence entre les exemples (exemples théoriques ou réels) ou entre les phases de l'illustration si elle est progressive.
+
+• Lignes 144–145: j'ai allongé l'explication que tu avais fournie. J'ai aussi ajouté une demande à la L. 145:
+### Guillaume: reformuler si nécessaire ###
+
+• Lignes 191 à 196:
+SVP ajouter des commentaires décrivant brièvement aux lecteurs ce que font les fonctions 
+   Locations2PEMscores, predict et drop.tip
+pour qu'ils puissent comprendre le déroulement des opérations.
+
+• Ligne 201, la commande
+plot(tpModel,show.tip.label=TRUE,show.node.label=TRUE,root.edge = TRUE,
+     srt = 0,adj=0.5,label.offset=0.08,font=1,cex=1.5,xpd=TRUE)
+produit ce message d'erreur:
+Erreur dans h(simpleError(msg, call)) : 
+	erreur d'ï¿½valuation de l'argument 'x' lors de la sï¿½lection d'une mï¿½thode pour   la fonction 'plot' : objet 'tpModel' introuvable
+=> De plus, je me demande pourquoi, dans ce message d'erreur qui devrait être en anglais, il semble y avoir des caractères accentués que mon ordi interprète de façon incorrecte.
+
+• À partir de la ligne 222 "## Plot the observed values", tout fonctionne bien.
+
+# ========
+
+PEM-class.R
+
+• Ligne 71, sp – A logical vector specifying which vertex is a tip.
+Question: est-ce qu'il a un seul vertex qui peut être un "tip" ou est-ce qu'il peut y en avoir plusieurs? La description de l'élément "B" qui suit laisse supposer que plusieurs sommets ("vertices") peuvent être des "tips". Si c'était le cas, il faudrait écrire ici:
+   "sp – A logical vector specifying which vertices are tips."
+Raison pour ma question: je ne sais pas ce que tu entends par un "tip". La description de "nsp", plus loin, indique cependant que les "tips" sont les espèces terminales de l'arbre.
+
+• Ligne 52, "The \code{\link{print}} method"
+Il n'y a pas de \code{\link{print}} method dans le fichier PEM-class.R.
+Voulais-tu plutôt écrire "The \code{\link{print.PEM}} method" 
+
+avec \code{\link{print.PEM}} et non \code{\link{print}}, puisqu'il n'existe pas de fonction "print" dans le fichier PEM-class.R
+
+• Ligne 56, "The \code{\link{as.data.frame}} method ..."
+Même question: voulais-tu plutôt écrire "The \code{\link{as.data.frame.PEM}} method" ?
+
+• Ligne 60, "The \code{\link{predict}} object ..."
+Même question: voulais-tu plutôt écrire "The \code{\link{predict.PEM}} function"? 
+avec deux changements:
+   1. \code{\link{predict.PEM}} et non \code{\link{predict}}, puisqu'il n'existe pas de fonction "predict" dans le fichier PEM-class.R;
+   2. "function" et non "object".
+
+# ========
+
+trait-simulator.R
+
+Petites corrections cosmétiques.
+
+Des lignes de documentation apparaissent sous le titre "Functions" dans le fichier d'aide qui s'affiche à l'écran quand on demande à voir le fichier d'aide de trait.simulator.  Trois de ces 5 lignes sont incomplètes et attendent que tu les complètes, aux lignes 234, 254 et 271 du fichier "trait-simulator.R".
+
+À la fin de l'exemple, un seul graphique est produit. Je n'ai pas trouvé comment passer d'un "Recursive display of the simulated traits" au suivant.
+
+# ========
+
+graph-class.R
+
+Petites corrections cosmétiques.
+
+\item{ vertex }{ A list that optionally contains vertex properties, if any
+#'   (or an empty list if none). }
+=> Fournis un exemple de désignation d'une liste vide.
+Faut-il écrire:  nom.de.la.liste <- list()
+ou plutôt:  nom.de.la.liste <- list("NA")   ?
+
+# ========
+
+graph-functions.R
+
+Petites corrections cosmétiques.
+
+Functions => • Phylo2DirectedGraph: Transforms a phylogenetic tree into a directed graph. 
+=> Phrase pas claire. S'agit-il essentiellement de créer un nouvel objet "x" de classe "graph" à partir d'un objet "tree" de classe "phylo" ? Expliquer SVP. Exemple L. 400 :
+
+=> Tu pourrais changer
+   #' Transforms a phylogenetic tree into a directed graph.
+=> en cette phrase:
+   #' Create a new graph-class object from a phylo-class object (phylogenetic tree).
+
+# ========
+
+lm-utils.R
+
+Petites corrections cosmétiques.
+
+L. 37, #' @param x Descriptors to be used as auxiliary traits.
+=> Préciser que les descripteurs x peuvent être quantitatifs ("numeric") ou "factors", comme dans toute fonction lm.
+
+# ========
+
+MPSEM-package.R
+
+Petites corrections cosmétiques.
+
+L. 60, #' \code{\link{predict.PEM}} and a linear model. To obtain these linear model,
+=> En cliquant sur l'hyperlien predict.pem j'aboutis dans le fichier PEM-class dans lequel il n'y a pas de fonction "predict.PEM(...)". Il y a cependant une fonction "predict()". Est-ce normal que cette fonction ne s'appelle pas predict.PEN(..) dans le code?
+
+=> Lorsque je tape   predict.PEM
+voici ce que j'obtiens:
+   Erreur : objet 'predict.PEM' introuvable  <==
+   De plus : Message d'avis :
+   Dans utils::packageDescription(package, fields = "Version") :
+     no package '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/MPSEM' was found
+
+# ========
+
+Description
+
+Deux petites corrections à la ligne 7: 
+Author: Guillaume Guenard, with contributions from Pierre Legendre; 
+
+# ========
+# ========
+
+Vignette – Introduction
+
+###  Le plus près possible du début de la Vignette, je suggère d'ajouter un encadré intitulé 
+
+   "The Phylogenetic eigenvector maps (PEM) expression"
+
+qui contiendra les paragraphes que tu trouveras dans le document 
+   "For the Vignette – The PEM expression.txt"
+
+# -----
+
+• Il y a deux questions pour toi à la L. 328 et 331 de ton fichier LaTeX.
+
+• L. 178-180, phrase que j'ai récrite (vérifier SVP): 
+"That model is written in section 3.3 by function {\tt PEM.build()}, which has edge 
+lengths as its first argument, followed by an arbitrary number of parameters provided as named arguments."
+=> Ai-je bien compris qu'il s'agit de la fonction PEM.build dont l'utilisation est décrite à la section 3.3 de la Vignette? Si c'est bien de cette fonction qu'il s'agit, je trouve dans la documentation de PEM-functions.R que le premier argument n'est pas la liste des "edge lengths" (argument d), mais plutôt 
+   x = object containing a phylogenetic graph.
+Corriger et compléter SVP.
+
+• L. 257, l'information provenant de 
+   str(perissodactyla.pgraph)
+est imprimée en caractères extrêmement petits. Cette information est illisible. La cause: LaTeX a décidé d'écrire toute l'information du dernier élément "attr(*, "vlabel")" sur une seule ligne. 
+=> Pourrais-tu faire imprimer ce "snippet" avec une police de taille lisible, quitte à ce que le dernier élément occupe plusieurs lignes?
+
+• Lignes 262, 269 et 273: j'ai indiqué de faire une liste à puces, créant ainsi un paragraphe pour l'élément "edge", un second pour l'élément "vertex" et un dernier pour les autres éléments que je ne sais pas extraire séparément. Peux-tu insérer le code LaTeX pour demander cette liste à trois puces?
+
+• L. 332-333, je donne ici un exemple de la façon d'extraire les vecteurs propres avec as.data.frame(). J'ai écrit la commande comme dans la console R. Revoir au besoin. 
+
+• L. 441-442, "it is mandatory to set {\tt drop=FALSE} to the bracket operator"
+=> Question: qu'est-ce que ce "bracket operator"? Je vois rien qui pourrait s'appeler ainsi dans les exemples lm1 et lm2, L. 429 et 433, juste au-dessus. Faudrait-il fournir un exemple pour que le lecteur comprenne de quoi il s'agit?
+
+• L. 505–510, ta phrase originelle était :
+"Because the result of {\tt getGraphLocations()} includes the phylogenetic graph with the target species removed has its element $x, it is not necessary to re-calculate the tree with the target species dropped and the phylogenetic graph as we did previously for explanatory purposes."
+=> Je ne comprends pas ta phrase: je ne vois pas si l'espèce Dicerorhinus sumatrensis fait partie, ou non de l'arbre que tu utilises. La phrase peut signifier Oui ou Non. Peux-tu clarifier cette phrase SVP.
+=> J'ajoute que la fonction getGraphLocations() ne possède pas d'argument $x. Elle a cependant un argument $tpall (premier argument) qui, dans le code au-dessus, contient l'arbre perissodactyla.tree dont il n'est pas question dans la phrase.
+Je te laisse donc le soin de clarifier tout cela.
+
+• L. 540-543, j'ai modifié ta phrase comme suit. Vérifie SVP que je n'en ai pas altéré le sens:
+"This cross-validation analysis has predicted the ($\log$) neonatal
+body mass of the 13 species under study with a cross-validated $R^{2}$ of 0.96
+### ou: with a cross-validation $R^{2}$ of 0.96 ###.
+The predicted and observed values are compared in Figure 2."
+
+Dans la Vignette, j'ai remplacé à 5 endroits les phrases à la première personne, comme "I refer users to ...", par des phrases de forme passive: "Users are referred to...".
+
+# ========
+

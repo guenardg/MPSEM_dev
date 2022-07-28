@@ -12,3 +12,6 @@ compile <- function() {
 ## compile()
 library(MPSEM)
 ##
+## list.files("../MPSEM/vignettes")
+## knitr::Sweave2knitr("../MPSEM/vignettes/PEM_with_MPSEM.Rnw")
+##

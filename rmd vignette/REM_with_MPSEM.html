@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Guillaume Guénard" />
+
+<meta name="date" content="2022-07-27" />
+
+<title>A phylogenetic modelling tutorial using Phylogenetic Eigenvector Maps (PEM) as implemented in R package MPSEM (0.4-2)</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+/* for pandoc --citeproc since 2.11 */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">A phylogenetic modelling tutorial using
+Phylogenetic Eigenvector Maps (PEM) as implemented in R package MPSEM
+(0.4-2)</h1>
+<h4 class="author">Guillaume Guénard</h4>
+<h4 class="date">2022-07-27</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#preparing-the-data">Preparing the data</a></li>
+<li><a href="#calculating-pem">Calculating PEM</a>
+<ul>
+<li><a href="#edge-weighting-function">Edge weighting function</a></li>
+<li><a href="#phylogenetic-graph">Phylogenetic graph</a></li>
+<li><a href="#building-the-eigenvector-map">Building the eigenvector
+map</a></li>
+<li><a href="#estimate-weighting-parameters-empirically">Estimate
+weighting parameters empirically</a></li>
+<li><a href="#phylogenetic-modelling">Phylogenetic modelling</a></li>
+</ul></li>
+<li><a href="#cross-validating-pem-predictions">Cross-validating PEM
+predictions</a></li>
+<li><a href="#other-utility-functions">Other utility functions</a>
+<ul>
+<li><a href="#influence-matrix">Influence matrix</a></li>
+<li><a href="#update-and-forced-pem-parameters">Update and forced PEM
+parameters</a></li>
+<li><a href="#pem-scores">PEM scores</a></li>
+<li><a href="#miscellaneous">Miscellaneous</a></li>
+</ul></li>
+<li><a href="#references">References</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>Phylogenetic Eigenvector Maps (<strong>PEM</strong>) is a method to
+perform phylogenetic modelling. Phylogenetic modelling consists in
+modelling trait evolution and predicting trait values using phylogeny as
+an explanatory factor <span class="citation">(Guénard, Legendre, and
+Peres-Neto 2013)</span>. Phylogenetic modelling allows one to predict
+trait values when it is difficult or impractical to obtain them, for
+instance when species are rare, extinct, or when information is needed
+for several species and trait values are only available for a relatively
+small number of them <span class="citation">(Guénard et al. 2011,
+2014)</span>.</p>
+<p>To apply phylogenetic modelling, one needs to have a set of species
+with known phylogeny and trait values (hereafter referred to as the
+<em>model species</em>) as well as to know the locations, with respect
+to the phylogeny of the models species, of the species for which trait
+values are being predicted (hereafter referred to as the <em>target
+species</em>). Phylogenetic modelling can be performed jointly with
+trait correlation modelling: it is possible to use other traits with
+known (or estimable) values for the target species to help predict a
+trait of interest. Phylogenetic trees being acyclic graphs, I will
+hereby prefer terms belonging to the graph theory over terms
+phylogeneticists may be more familiar with. Therefore I will use
+<em>edge</em> over <em>branches</em> and <em>vertex</em> over
+<em>root</em>, <em>node</em> or <em>tip</em>; safe in cases where I want
+to be specific about what a vertex represents.</p>
+<p>The <strong>PEM</strong> work flow consists in</p>
+<ol style="list-style-type: decimal">
+<li><p>calculating the influence matrix of the graph,</p></li>
+<li><p>specifying a model of trait evolution along the edges of the
+phylogenetic tree,</p></li>
+<li><p>calculating the left eigenvectors of the weighted and centred
+influence matrix and</p></li>
+<li><p>use these eigenvectors as descriptors <span class="citation">(Guénard, Legendre, and Peres-Neto
+2013)</span>.</p></li>
+</ol>
+<p>An <strong>R</strong> language implementation of that approach is
+found in package <strong>MPSEM</strong>. <strong>MPSEM</strong> was
+developed to make the aforementioned process as seamless as possible. It
+is a work in progress; I welcome anyone to provide relevant suggestions
+and constructive remarks aimed at making <strong>MPSEM</strong> a
+better, more efficient and user-friendly, interface to phylogenetic
+modelling.</p>
+<p>Assuming package <strong>MPSEM</strong> is installed, the first step
+to calculate a <strong>PEM</strong> is to load package MPSEM, which
+depends on packages <strong>ape</strong> and <strong>MASS</strong>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MPSEM)</span></code></pre></div>
+<pre><code>## Le chargement a nécessité le package : ape</code></pre>
+</div>
+<div id="preparing-the-data" class="section level1">
+<h1>Preparing the data</h1>
+<p>For the present tutorial, we will use the data set
+<strong>perissodactyla</strong> from <strong>R</strong> package
+<strong>caper</strong>. These data from <span class="citation">Purvis
+and Rambaut (1995)</span> are loaded into your <strong>R</strong>
+workspace as follows:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(perissodactyla,<span class="at">package=</span><span class="st">&quot;caper&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- -->
+Fig. 1. The phylogenetic tree used for this example.</p>
+<hr />
+<p>The <strong>perissodactyla</strong> data set contains
+<code>perissodactyla.tree</code>, a phylogenetic tree encompassing 18
+odd-toed ungulate species (Fig. 1) and <code>perissodactyla.data</code>,
+a data frame containing trait information about the species. For the
+present study we will model the <span class="math inline">\(\log_{10}\)</span> gestation weight as a function
+of phylogeny and <span class="math inline">\(\log_{10}\)</span> adult
+female weight:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Binomial</th>
+<th align="right">log.female.wt</th>
+<th align="right">log.neonatal.wt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Ceratotherium simum</td>
+<td align="right">6.262</td>
+<td align="right">4.903</td>
+</tr>
+<tr class="even">
+<td align="left">Dicerorhinus sumatrensis</td>
+<td align="right">5.910</td>
+<td align="right">4.544</td>
+</tr>
+<tr class="odd">
+<td align="left">Diceros bicornis</td>
+<td align="right">6.183</td>
+<td align="right">4.699</td>
+</tr>
+<tr class="even">
+<td align="left">Equus africanus</td>
+<td align="right">5.439</td>
+<td align="right">4.398</td>
+</tr>
+<tr class="odd">
+<td align="left">Equus burchelli</td>
+<td align="right">5.477</td>
+<td align="right">4.477</td>
+</tr>
+<tr class="even">
+<td align="left">Equus grevyi</td>
+<td align="right">5.653</td>
+<td align="right">4.602</td>
+</tr>
+<tr class="odd">
+<td align="left">Equus hemionus</td>
+<td align="right">5.462</td>
+<td align="right">4.398</td>
+</tr>
+<tr class="even">
+<td align="left">Equus zebra</td>
+<td align="right">5.462</td>
+<td align="right">4.398</td>
+</tr>
+<tr class="odd">
+<td align="left">Rhinoceros sondaicus</td>
+<td align="right">6.153</td>
+<td align="right">4.699</td>
+</tr>
+<tr class="even">
+<td align="left">Rhinoceros unicornis</td>
+<td align="right">6.237</td>
+<td align="right">4.845</td>
+</tr>
+<tr class="odd">
+<td align="left">Tapirus indicus</td>
+<td align="right">5.455</td>
+<td align="right">3.919</td>
+</tr>
+<tr class="even">
+<td align="left">Tapirus pinchaque</td>
+<td align="right">5.377</td>
+<td align="right">3.699</td>
+</tr>
+<tr class="odd">
+<td align="left">Tapirus terrestris</td>
+<td align="right">5.332</td>
+<td align="right">3.760</td>
+</tr>
+</tbody>
+</table>
+<p>Before going any further, it is important to make sure that the
+species in the tree object are the same and presented in the same order
+as those in the data table. Glancing at the data table, species clearly
+cannot match since the latter feature information for only 13 of the 18
+species in the tree. We will therefore match the tip labels of the
+original tree in the data table using the binary (Latin) species names
+in a character vector <code>spmatch</code>. When no matching element
+from the data table is found, the value <code>NA</code> appears at the
+corresponding position in <code>spmatch</code>. We can therefore use
+these missing values to reference the species that can be dropped from
+the tree using function <code>drop.tip()</code> from package
+<strong>ape</strong> as follows:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">match</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree<span class="sc">$</span>tip.label,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  perissodactyla.data[,1L]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> spmatch</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">drop.tip</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree<span class="sc">$</span>tip.label[<span class="fu">is.na</span>(spmatch)]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.tree</span></code></pre></div>
+<p>Now that the data match the tree in terms of species content, we then
+need to make sure that species ordering also matches as follows:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cbind</span>(perissodactyla.tree<span class="sc">$</span>tip.label,perissodactyla.data[,1L])</span></code></pre></div>
+<pre><code>##       [,1]                       [,2]                      
+##  [1,] &quot;Dicerorhinus sumatrensis&quot; &quot;Ceratotherium simum&quot;     
+##  [2,] &quot;Rhinoceros sondaicus&quot;     &quot;Dicerorhinus sumatrensis&quot;
+##  [3,] &quot;Rhinoceros unicornis&quot;     &quot;Diceros bicornis&quot;        
+##  [4,] &quot;Diceros bicornis&quot;         &quot;Equus africanus&quot;         
+##  [5,] &quot;Ceratotherium simum&quot;      &quot;Equus burchelli&quot;         
+##  [6,] &quot;Tapirus terrestris&quot;       &quot;Equus grevyi&quot;            
+##  [7,] &quot;Tapirus pinchaque&quot;        &quot;Equus hemionus&quot;          
+##  [8,] &quot;Tapirus indicus&quot;          &quot;Equus zebra&quot;             
+##  [9,] &quot;Equus grevyi&quot;             &quot;Rhinoceros sondaicus&quot;    
+## [10,] &quot;Equus burchelli&quot;          &quot;Rhinoceros unicornis&quot;    
+## [11,] &quot;Equus zebra&quot;              &quot;Tapirus indicus&quot;         
+## [12,] &quot;Equus africanus&quot;          &quot;Tapirus pinchaque&quot;       
+## [13,] &quot;Equus hemionus&quot;           &quot;Tapirus terrestris&quot;</code></pre>
+<p>Since they do not, we need to recalculate <code>spmatch</code> with
+the new, reduced, tree and re-order the data accordingly:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">match</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree<span class="sc">$</span>tip.label,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  perissodactyla.data[,1L]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> spmatch</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>perissodactyla.data[spmatch,] <span class="ot">-&gt;</span> perissodactyla.data</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="fu">all</span>(perissodactyla.tree<span class="sc">$</span>tip.label<span class="sc">==</span>perissodactyla.data[,1L])</span></code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<p>The last code line is just a last check to guarantee that all species
+names are matching. As a last step before we are done with data
+manipulation, I will put the binary names in place of the row names and
+delete the table’s first row:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>perissodactyla.data[,1L] <span class="ot">-&gt;</span> <span class="fu">rownames</span>(perissodactyla.data)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>perissodactyla.data[,<span class="sc">-</span>1L] <span class="ot">-&gt;</span> perissodactyla.data</span></code></pre></div>
+<p>Our data of interest now appear as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">log.female.wt</th>
+<th align="right">log.neonatal.wt</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Dicerorhinus sumatrensis</td>
+<td align="right">5.910</td>
+<td align="right">4.544</td>
+</tr>
+<tr class="even">
+<td align="left">Rhinoceros sondaicus</td>
+<td align="right">6.153</td>
+<td align="right">4.699</td>
+</tr>
+<tr class="odd">
+<td align="left">Rhinoceros unicornis</td>
+<td align="right">6.237</td>
+<td align="right">4.845</td>
+</tr>
+<tr class="even">
+<td align="left">Diceros bicornis</td>
+<td align="right">6.183</td>
+<td align="right">4.699</td>
+</tr>
+<tr class="odd">
+<td align="left">Ceratotherium simum</td>
+<td align="right">6.262</td>
+<td align="right">4.903</td>
+</tr>
+<tr class="even">
+<td align="left">Tapirus terrestris</td>
+<td align="right">5.332</td>
+<td align="right">3.760</td>
+</tr>
+<tr class="odd">
+<td align="left">Tapirus pinchaque</td>
+<td align="right">5.377</td>
+<td align="right">3.699</td>
+</tr>
+<tr class="even">
+<td align="left">Tapirus indicus</td>
+<td align="right">5.455</td>
+<td align="right">3.919</td>
+</tr>
+<tr class="odd">
+<td align="left">Equus grevyi</td>
+<td align="right">5.653</td>
+<td align="right">4.602</td>
+</tr>
+<tr class="even">
+<td align="left">Equus burchelli</td>
+<td align="right">5.477</td>
+<td align="right">4.477</td>
+</tr>
+<tr class="odd">
+<td align="left">Equus zebra</td>
+<td align="right">5.462</td>
+<td align="right">4.398</td>
+</tr>
+<tr class="even">
+<td align="left">Equus africanus</td>
+<td align="right">5.439</td>
+<td align="right">4.398</td>
+</tr>
+<tr class="odd">
+<td align="left">Equus hemionus</td>
+<td align="right">5.462</td>
+<td align="right">4.398</td>
+</tr>
+</tbody>
+</table>
+<p>Finally, for the sake of demonstrating how to obtain predictions, we
+will remove the Sumatran rhinoceros (<em>Dicerorhinus sumatrensis</em>),
+the first species on top of the table) to obtain our training data set
+{<code>perissodactyla.train</code>}, keep the withdrawn data as
+{<code>perissodactyla.test</code>}, and calculate a tree without the
+target species:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>perissodactyla.data[<span class="sc">-</span>1L,,drop<span class="ot">=</span><span class="cn">FALSE</span>] <span class="ot">-&gt;</span> perissodactyla.train</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>perissodactyla.data[1L,,drop<span class="ot">=</span><span class="cn">FALSE</span>] <span class="ot">-&gt;</span> perissodactyla.test</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">drop.tip</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">tip=</span><span class="st">&quot;Dicerorhinus sumatrensis&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.tree.train</span></code></pre></div>
+</div>
+<div id="calculating-pem" class="section level1">
+<h1>Calculating PEM</h1>
+<div id="edge-weighting-function" class="section level2">
+<h2>Edge weighting function</h2>
+<p>As previously announced, I use the vocabulary of the graph theory
+when describing PEM: a tree is a (directed) graph, a branch is an edge,
+and the root, nodes, and tips are vertices. PEM allows one to specify a
+model of trait evolution along the edges of the tree. That model is
+given as a function having edge lengths as its first argument, followed
+by an arbitrary number of parameters provided as named arguments.
+Although PEM allows one to specify different parameter sets for
+different parts of the phylogeny as well as arbitrary weighting
+functions, the current implementation of <strong>MPSEM</strong> (0.4-2)
+only supports the following power function: <span class="math display">\[
+w_{a,\psi}(\phi_{j})=
+\begin{cases}
+\psi\phi^{\frac{1-a}{2}} &amp; \phi_{j}&gt;0\\
+0 &amp; \phi_{j}=0,
+\end{cases}
+\]</span> where a is the steepness parameter describing how abrupt the
+changes in trait values occur with time following branching, <span class="math inline">\(\psi\)</span> is the evolution rate of the trait,
+and <span class="math inline">\(\phi_{j}\)</span> is the length of edge
+<span class="math inline">\(j\)</span> <span class="citation">(Guénard,
+Legendre, and Peres-Neto 2013)</span>.</p>
+<p><img src="data:image/png;base64,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" /><!-- -->
+Fig. 2. Output of the edge weighting function for different sets of
+parameters <span class="math inline">\(a\)</span> and <span class="math inline">\(\psi\)</span>.</p>
+<hr />
+<p>As the steepness parameter increases, the weight assigned to a given
+edge increases more sharply with respect to the phylogenetic distance
+(or evolutionary time; Fig. 2). In the context of PEM, the edge weight
+represent the relative rate of evolution of the trait; the greater the
+edge weight, the greater the trait change along that edge. When <span class="math inline">\(a=0\)</span>, trait evolution is neutral and
+therefore proceeds by random walk along edges. When <span class="math inline">\(a=1\)</span>, edge weights no longer increase as a
+function of edge lengths. That situation corresponds to the scenario in
+which trait evolution is driven by the strongest possible natural
+selection: following a speciation event, trait either change abruptly
+(directional selection) at the vertex or do not change at all
+(stabilizing selection).</p>
+</div>
+<div id="phylogenetic-graph" class="section level2">
+<h2>Phylogenetic graph</h2>
+<p>The first step to build a PEM is to convert the phylogenetic tree.
+The is done by giving the tree to function
+<code>Phylo2DirectedGraph()</code> as follows:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Phylo2DirectedGraph</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree.train</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.pgraph</span></code></pre></div>
+<p>Here’s a snipet showing how the graph container used by
+<strong>MPSEM</strong> stores graph information:</p>
+<pre><code>## List of 2
+##  $ edge  :List of 3
+##   ..$         : num [1:21] 13 14 15 16 16 15 17 17 14 18 ...
+##   ..$         : num [1:21] 14 15 16 1 2 17 3 4 18 19 ...
+##   ..$ distance: int [1:21] 9 4 3 1 1 3 1 1 5 2 ...
+##  $ vertex:List of 1
+##   ..$ species: logi [1:22] TRUE TRUE TRUE TRUE TRUE TRUE ...
+##  - attr(*, &quot;ev&quot;)= int [1:2] 21 22
+##  - attr(*, &quot;class&quot;)= chr &quot;graph&quot;
+##  - attr(*, &quot;elabel&quot;)= chr [1:21] &quot;E1&quot; &quot;E2&quot; &quot;E3&quot; &quot;E4&quot; ...
+##  - attr(*, &quot;vlabel&quot;)= chr [1:22] &quot;Rhinoceros sondaicus&quot; &quot;Rhinoceros unicornis&quot; &quot;Diceros bicornis&quot; &quot;Ceratotherium simum&quot; ...</code></pre>
+<p>It is a list of two elements themselves being two lists. Element
+<code>$edge</code> is a list containing information about the edges of
+the graph, namely the indices of their origin and destination vertices
+(the two first unnamed elements) and an arbitrary number of
+supplementary elements storing other edge properties. In the present
+case, a numeric vector created by <code>Phylo2DirectedGraph()</code> and
+called <code>$distance</code> stores the phylogenetic distances (<span class="math inline">\(\phi_{j}\)</span>), which correspond to the branch
+lengths of <code>perissodactyla.tree</code>. The element
+<code>$vertex</code> is a list containing an arbitrary number of
+elements storing vertex properties. In the present case, a logical
+vector created by <code>Phylo2DirectedGraph()</code> and called
+<code>$species</code> stores whether a given vertex represents a species
+(i.e., it is a tip). In addition to edge and vertex information, the
+container stores other useful information in the form of attributes:
+<code>ev</code> stores the number of edges and vertices whereas
+<code>elabel</code> and <code>vlabel</code> store edge and vertex
+labels, respectively.</p>
+</div>
+<div id="building-the-eigenvector-map" class="section level2">
+<h2>Building the eigenvector map</h2>
+<p>In <strong>MPSEM</strong>, PEM are build using function
+<code>PEM.build()</code>. As an example, let us assume that the
+steepness and evolution rate are <span class="math inline">\(a=0.25\)</span> and <span class="math inline">\(\psi=2\)</span> among genus <em>Equus</em>, <span class="math inline">\(a=0.8\)</span> and <span class="math inline">\(\psi=0.5\)</span> among genus <em>Tapirus</em>,
+and <span class="math inline">\(a=0\)</span> and <span class="math inline">\(\psi=1\)</span> from the root of the tree up to
+the vertex where the two latter genera begin as well as among the other
+genera. The following figure will help us figure out the indices of the
+edges involved:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>perissodactyla.tree.train <span class="ot">-&gt;</span> tree</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">paste</span>(<span class="st">&quot;N&quot;</span>,1L<span class="sc">:</span>tree<span class="sc">$</span>Nnode) <span class="ot">-&gt;</span> tree<span class="sc">$</span>node.label</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(tree,<span class="at">show.node.label=</span><span class="cn">TRUE</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="fu">edgelabels</span>(</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  1L<span class="sc">:</span><span class="fu">nrow</span>(tree<span class="sc">$</span>edge),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">edge=</span>1L<span class="sc">:</span><span class="fu">nrow</span>(tree<span class="sc">$</span>edge),</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">bg=</span><span class="st">&quot;white&quot;</span>,</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">cex=</span><span class="fl">0.75</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- -->
+Fig. 3. The labelled training species tree for this example.</p>
+<hr />
+<p>Hence, <span class="math inline">\(a=0.25\)</span> and <span class="math inline">\(\psi=2\)</span> for edges 15–21, <span class="math inline">\(a=0.8\)</span> and <span class="math inline">\(\psi=0.5\)</span> for edges 10–13, and <span class="math inline">\(a=0\)</span> and <span class="math inline">\(\psi=1\)</span> for edges 1–9 and 14:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rep</span>(<span class="dv">0</span>,<span class="fu">attr</span>(perissodactyla.pgraph,<span class="st">&quot;ev&quot;</span>)[1L]) <span class="ot">-&gt;</span> steepness</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rep</span>(<span class="dv">1</span>,<span class="fu">attr</span>(perissodactyla.pgraph,<span class="st">&quot;ev&quot;</span>)[1L]) <span class="ot">-&gt;</span> evol_rate</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>steepness[15L<span class="sc">:</span><span class="dv">21</span>] <span class="ot">&lt;-</span> <span class="fl">0.25</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>evol_rate[15L<span class="sc">:</span><span class="dv">21</span>] <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>steepness[9L<span class="sc">:</span><span class="dv">13</span>] <span class="ot">&lt;-</span> <span class="fl">0.8</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>evol_rate[9L<span class="sc">:</span><span class="dv">13</span>] <span class="ot">&lt;-</span> <span class="fl">0.5</span></span></code></pre></div>
+<p>The PEM is obtained as follows:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEM.build</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.pgraph,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">d=</span><span class="st">&quot;distance&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">sp=</span><span class="st">&quot;species&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">a=</span>steepness,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">psi=</span>evol_rate</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.PEM</span></code></pre></div>
+<p>In addition to the phylogenetic graph, function
+<code>PEM.build()</code> needs arguments <code>d</code>, the name of the
+edge property where the phylogenetic distances are stored,
+<code>sp</code>, the name of the vertex property specifying what vertex
+is a species, as well as the user-specified steepness and evolution
+rate. When the vectors given to arguments <code>a</code> or
+<code>psi</code>, have smaller sizes then the number of edges, the
+values are recycled. The default values for <code>d</code> and
+<code>sp</code> are those produced by
+<code>Phylo2DirectedGraph()</code>, and can therefore be omitted in most
+cases. The object that <strong>MPSEM</strong> uses to store PEM
+information is rather complex and we will hereby not browse through it.
+Method <code>as.data.frame</code> can be used to extract the eigenvector
+from the PEM-class object. For a set of <span class="math inline">\(n\)</span> species, that method returns a matrix
+encompassing at most <span class="math inline">\(n-1\)</span> column
+vectors that can be used in models to represent phylogenetic structure
+in traits. Here the phylogenetic patterns of variation described by two
+eigenvectors of the PEM we calculated above:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">layout</span>(<span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>),1L,7L))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="fl">5.1</span>,<span class="fl">2.1</span>,<span class="fl">4.1</span>,<span class="fl">2.1</span>))</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(perissodactyla.tree.train, <span class="at">x.lim=</span><span class="dv">60</span>, <span class="at">cex=</span><span class="fl">1.5</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="at">y =</span> 1L<span class="sc">:</span><span class="fu">nrow</span>(perissodactyla.train), <span class="at">ylab=</span><span class="st">&quot;&quot;</span>, <span class="at">xlab =</span> <span class="st">&quot;Loading&quot;</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">x =</span> <span class="fu">as.data.frame</span>(perissodactyla.PEM)[,1L], <span class="at">xlim=</span><span class="fl">0.5</span><span class="sc">*</span><span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>     <span class="at">axes=</span><span class="cn">FALSE</span>, <span class="at">main =</span> <span class="fu">expression</span>(<span class="fu">bold</span>(v)[<span class="dv">1</span>]), <span class="at">cex=</span><span class="fl">1.5</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">1</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span><span class="dv">0</span>)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="at">y =</span> 1L<span class="sc">:</span><span class="fu">nrow</span>(perissodactyla.train), <span class="at">ylab=</span><span class="st">&quot;&quot;</span>, <span class="at">xlab =</span> <span class="st">&quot;Loading&quot;</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>     <span class="at">x =</span> <span class="fu">as.data.frame</span>(perissodactyla.PEM)[,5L], <span class="at">xlim=</span><span class="fl">0.5</span><span class="sc">*</span><span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>     <span class="at">axes=</span><span class="cn">FALSE</span>, <span class="at">main =</span> <span class="fu">expression</span>(<span class="fu">bold</span>(v)[<span class="dv">5</span>]), <span class="at">cex=</span><span class="fl">1.5</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">1</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span><span class="dv">0</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqAAAAHgCAMAAABNUi8GAAADAFBMVEUAAAABAQECAgIDAwMEBAQFBQUGBgYHBwcICAgJCQkKCgoLCwsMDAwNDQ0ODg4PDw8QEBARERESEhITExMUFBQVFRUWFhYXFxcYGBgZGRkaGhobGxscHBwdHR0eHh4fHx8gICAhISEiIiIjIyMkJCQlJSUmJiYnJycoKCgpKSkqKiorKyssLCwtLS0uLi4vLy8wMDAxMTEyMjIzMzM0NDQ1NTU2NjY3Nzc4ODg5OTk6Ojo7Ozs8PDw9PT0+Pj4/Pz9AQEBBQUFCQkJDQ0NERERFRUVGRkZHR0dISEhJSUlKSkpLS0tMTExNTU1OTk5PT09QUFBRUVFSUlJTU1NUVFRVVVVWVlZXV1dYWFhZWVlaWlpbW1tcXFxdXV1eXl5fX19gYGBhYWFiYmJjY2NkZGRlZWVmZmZnZ2doaGhpaWlqampra2tsbGxtbW1ubm5vb29wcHBxcXFycnJzc3N0dHR1dXV2dnZ3d3d4eHh5eXl6enp7e3t8fHx9fX1+fn5/f3+AgICBgYGCgoKDg4OEhISFhYWGhoaHh4eIiIiJiYmKioqLi4uMjIyNjY2Ojo6Pj4+QkJCRkZGSkpKTk5OUlJSVlZWWlpaXl5eYmJiZmZmampqbm5ucnJydnZ2enp6fn5+goKChoaGioqKjo6OkpKSlpaWmpqanp6eoqKipqamqqqqrq6usrKytra2urq6vr6+wsLCxsbGysrKzs7O0tLS1tbW2tra3t7e4uLi5ubm6urq7u7u8vLy9vb2+vr6/v7/AwMDBwcHCwsLDw8PExMTFxcXGxsbHx8fIyMjJycnKysrLy8vMzMzNzc3Ozs7Pz8/Q0NDR0dHS0tLT09PU1NTV1dXW1tbX19fY2NjZ2dna2trb29vc3Nzd3d3e3t7f39/g4ODh4eHi4uLj4+Pk5OTl5eXm5ubn5+fo6Ojp6enq6urr6+vs7Ozt7e3u7u7v7+/w8PDx8fHy8vLz8/P09PT19fX29vb39/f4+Pj5+fn6+vr7+/v8/Pz9/f3+/v7////isF19AAAACXBIWXMAAA7DAAAOwwHHb6hkAAAgAElEQVR4nO2dB3wURfvHNyQB0oAEktBCaFJCpASpKgQJSpNIl6LgCwIqTQnNV5CiFCEKCEgRRQSUpkgX5C9dRAR8UQGlRKUIKBACKaQ8/5253N5tuLu5PW535i7P9/PJ7t7OM7ND9uve3sX7nQQIIjAS7wkgiCNQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBu9JSOw0FpIO9puIwx80dBufGF9DZMknbynobLGDN/FJQbGSUehUfLZPOehssYM38UlB/P+ab4DZLXRzJ4z8Q1TPO/Etm06c/6HQQF5cdWqZe0G7J31/iH90xcwzT/Q5N0PQgKyo97YT4ROZA2J8ZDBTXNf1WfF5bpeBAUlCMDpZfIqqOHCmqa/6YPL7bdpt8xUFD+eKygZtZM1G9sFJQ/ni3ohN3w30/1Gx4F5Y9nC3ouoVVfHd9rQkERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQRGhQUERoUFBEaFBQfly5AjvGTwYus8fBeXLm2/ynsGDofv8UVC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMDBH0oGSisbMdRjd12Dyg3QNPSRRQUAaGCDrXZ+1Gwg/Odogf7rB54mcPPCVRQEEZGCJo3xht9XkhK/WZiHigoAwMEbTWC+atH9uF1VuXOAm+8ksHuFNkk2Ujd1G9wCofmKpOSTsSwyM/lLeuDaoV2v0SwCH/7+NLNvnryyZBrTJgk6/c53z/amE9rwLsK3asfXj5T8H2SMKDgjIwQtDbPovyt3b599owMyBkG0yoB+TW9KJlY0rYoq3PSOdp2Qopds3euIAcOFP5sXUrIuUb0vlFW377mW/FjgeTpdUwqQ7AibJtV31c5mmAOUVrrd0TF5RjeyThsXeCc1YOe+3LPEOnooHfpg6ccZFueYWg3+a/RpqZ+dAI+WEL6Tq0GyBvzA8Hy0bptwBShl6iHYYFnQNY4pMBnVpkA0yVLsN/KqQCPBKXDXnBC6HTcwCNOuYAjPHLgOdLpAAsk2ttjiQ8dk7wlQYJ85KbtLpt7GSc5f3IMUuHh39ONr1C0FnFvqSvkS4vKik/C8OoagDh5Cl4QFvLRnZgzU+VHNdm5OvL3q4Bv/qsSklJ+UxKgfpJ8p7SCwD+lvZDxfdgnw+5Qq4vkg6xr5hqbY8kPHZOcI//you8F141dC7OcrLcX/Lyl/DL4CGC3v3nhgNyoecj+YX9upBlj17wh0Re0Dd43bIBO5v4+LT4lZZlB2yQl116wXzTlbdYTqb/WoAL0o8AW4ukXZX2wOS6pPC9KpDuu0ne6NzL9kjiY/sEZwbfIasL5Q2di7O8+Tpd9VsCHiJofFCofcp8A1UH5RfWI8/w6aXmwAb/TICrfhssGzJXP4noRcuOy5dMgOhkGNIyv+MPkvycv65oFsCU2rDd5xY825HsbvUCfCeRe6FKybZHEh/bJ/jvSLrK8RPyLvSlhXQ1YQp4iKAvL3DY/K9kfo3UpIm8SJIOweuV5I3XpAvKRm6NufJGfA9atjRMXlyXr5OvVpNP0Il6B2FxSXljHLkQJ/aFt6sD9Con71hX5GdYEJ5fa3Mk8bF9grNLXSOrn6obOhdnmTGMrrqQr07wBkF3SjO2EHZAss9bWwYE+2fAKGnhj6+FhIJlIyJq+dcjfHfTDoPayIsdPqlw1HfgztnlEvNgcCt5T8JgeSHff3aV5VsrjdrxesAM+abzyfxamyOJj50TPOzZDIDU1jONnYyT/Bl+UF5uKi+/bvUKQaflv4iPg+yxETWGjm8IcL5TqZhJE1pbbexrFlSmdb5VcWPB9LoH1scExMy6J79mHyU/CJPvea5K+6DKdPnBnCqhT8n3pdDAXGtzJPGxc4LTe1ceNKD80BxjJ+Ms2yt2GNG6+mGy6Q2CFqDbS244pNdg9wQfX7zsjJET0UTaF3O2ZNItLxQ0arkbDuk14F+SGBgu6N+1zrrhkF4DCsrA+CsoYg0KygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKygAF5QsKysAQQTXHL1oYX9GUsuRFiYsqUFAGhgiqOX5RYXXIHlP8ixclLqpAQRkYIqjW+EULT5ly8e642l94UFAGhgiqNX4RjnSIDGz8LdzykaRW/xf0c3wCTVw82aNS6YHpSqunJy9S7J/gnFwDp6GZe/lrrxBUc/zimeDemz+KKg+5R6RDd2eHxcw9SRIXtwd3WzfNb6LS6unJixR7J3jfY4HBTx43dCrOkzauvH/0dPq5Y68QVHP84uo+8tVjUhWAz4tlQ+/g34EkLt6LJtfhp1tbWj08eZFi5wRvqrg+885Hkd8bOxknyW76/AX4tWNnsu0VgmqOX5T/G/11U3RPgLGN5PuDIUATb1b6EfHS71haPTx5kWLnBNfeQ5YrE4ycitN8ToKIILv2AfAQQbskznDAOc3xi7As1jf6mcBkgDaDIE2+tQSSuDi0OahbPT15kWL7BN8oSWPt7gQaOhdnGfEuXY0myVEeIWjnJ8faZ/xZzfGLySXW3YHr0n6AMh/AfukK0MTFhD5y0+0D6UqrpycvUuwIWkpkQYebBE2aAR4iqLvjF6uRgNRZvnfhL+l7mEuiMkniYgf5dRL0i8hWWj09eZFi5wTX8oSnePkK4hWCao5frNTk8KFhAWEp8JVvOvRrL+8hiYvLpMm7k4ost7R6evIixc4J/qriF1npn0QeNnYyTpLdpN+fcKbTM2TbGwTVHL+4pWpwo7e2h42kX+fxMElrJ4mLuZOiQuN3W7V6evIixd4J3tM8MLjNMUOn4jy3x5QtVmma97zNpAbjF62xf4KzhX6jPjN/7YWCYvyiNfinTgYYv8gXFJSBE4IeK1XVMSWH6TxJLwYFZeCMoHXOOabvPJ0n6cWgoAycEbQBowD/j3rXQUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZGCLoA8QvmmgwztWeooOCMjBEUNfjF01k+n/hYk/hQUEZGCKo6/GLJg7TiIZ8vCuKEQVlYIigWuMXJ9Mbgk5wbVCt0O6XAOaXW92mZPwZABrFqMQvegMaT/CRD1am6DMRzRz+YNUfXiKo5vjFq2fPnp1Z9JszlR9btyKyKUD/4NofrKteKxtoFKMSv+gNaDrBN5+uMaRP5CS95qKFf9vXHNI7Yqp3CKo5flFmV8Aa6NQiG2CqdBnqRF8B+Ej60RTFqMQvegOaTnCPofIv5FqDT/SajAa6jJCn8ne9VV4hqAvxi4eCl8CvPqtSUlI+k1LuFFkq7/pN2meKYlTiF70BLSf431IZZPX1YzrNRQPXwmhyw9Z4DxT0ekCoNaW/0R6/CD+FzpSvq6brbrGc/dI1ed8+n1QaxWgJZ/QGtJzgE3Xp6mIFfaaihaNxdJUS7YGCXom8oSJXc/wi/BY5Rl4OaZnf7d3iZJlUxxTFaAln9Aa0nOBL4TQN5zvW+TCAP8vSfMj9jTxR0LIFmjXHL/4V/SJZvVpN/iWcqHcQeku/yBshG01RjEr8oleg6QQ/Pl9e5HScodNctNCMnNPsdrO9QVCt8Yv/1nz8nHzzeeuo78Cds8sl5kGNwKe+nh35DJiiGJX4Ra9A0wn+rVqXxbPrJWbpNRkNnK7abfGsh7ve8wZBtcYvLjGVr4L1MQExs+7BLZ8D7Uo+PD0nP4pRiV/0CrSd4IzFg5K26TQTjWQsGpS0wyPfB71P0AJg/KI1+JckBsYLivGL1qCgDAwXFOMXVaCgDIy/giLWoKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAM3CFoqyDrzxmXLHpfgeZ0O0aa3eimBfcMa2n6GdDO2UMIAgrKwB2C5qo+Znw68r4Crel2rDS7+OEF9zQdZfqZ+JmThxAFFJSBOwRVY+MpXmu6nSrNTkGJtcsLWVmgKbv4Z/TH80BBGRgiqNZ0OyXNTmk1xdqd7FGp9MB0OCXtSAyP/FAuNMffHZfO0p9Nvuma5sofFJSBEYJqTrdT0uyUVhprtz2427ppfhNhhRS7Zm9cQA4o8XdLSuXRn0l1NE1VAFw7welTH6/73Ck3T8UF1rYLf2ijvocwQlDN6XZKmp3SSmLt7kWTC/HTrWFY0DnZSZ8MS/zdiwlAfzo9p2mqAuCSoDdintv305zIze6ejFYGNNz4co+H73tB4FaMEFRrup0lzU4pI7F2K/2Ivul3oNlAef12DUv8HTQYD/Sn4nuapioALgk6nob8fVcxx71z0cr+muny/NOij+l5EF0FTZu7du2GG5rT7ZQ0O6WVxtoNbW4aJTuAZI116WWJv8vw3wDk56q0R9NUBcAlQRsepqs6P7l1Kpp54006/9HT9TyIroJuLdO9e/cfNKfbKWl2SiuNtUvoI++9fSD9uERymaKTLfF330l/0J/tPrc0TVUAXBK09i901fSQW6eimVGz6fynTNDzILoKeqgZWWpOt1PS7JQyGmvXgbwC6heRvTRMXl+XL5ZK/N378l0q+Xm7uqaZioBLgvagv9AbpW66dy5aWd6Jzr/1Oj0PYoCgWtPtLGl2SiuNtVsmTd6dVGQ5DGojP9jhkwpK/N3zcjP56dpD00xFwCVBj5TdKf+e2/LOT0uvPj37zTfejNU1bc8AQbWm21nS7JRWGmuXOykqNF4uiRsL9DUSmOPvIGai6aeKrndDuuDa20y7alRpUGrCPTfPRTMpHUpXCOhi648q7sMAQQuA6XbWuPhGd+65Y0L8SeLawDE6H8F4QTHdzhr8SxIDwwXFdDsVKCgD46+giDUoKAMUlC8oKAMUlC8oKAMUlC8oKAMUlC8oKAMUlC8oKAMUlC8oKAMUlC8oKAP3C3rVV1IId3FWhQcUlIH7BbUCr6BMUFAGKChfUFAGKChfUFAGKChfUFAGKChfUFAGKChfUFAGKChfUFAGhgiqOX7RSTwubPF+UFAGhgiqNX7RWTwubPF+UFAGhgiqNX5RxR12iQeDgjIwRFCt8Yvwc5eIqClxC/NTF/NDFrOKvC837fH5sRoJKFkVeNHzwhbvx8UTfO/ng5xTG0ykvPCqzkcwQlDN8YvfhvRY/5av7xFT6qISshhFPhDftA880RUgq8obHhi2eD+uCbq1Skyz0CRdAxOc4WzrCpWC26XoegwjBNUav5gb019e1vfPpKmLlpDFFn0ANha7AP+RZX0v4rYHhi3ej0uCHiy/H+B6Iu+AgTuV5+a+OWFmzUw9D2KEoFrjF9cW+1de9m9gSl20hCz2j4fcOkkAk6PgVukPPDFs8X5cErQrSZeG1FI33DsXrSzrSuf/1Od6HkRXQbeUSkhoe1hz/OJQEr4ETww0pS4qIYswuTosD5VPynK/3PG1sj0xbPF+XBK0lun31Ixzut1ryXT+U9/Q8yC6Cprxya5du1I1xy8+QQJqbxZfZEpdVEIWYUVAZrT8O4E90tGAr8ATwxbvxyVBHzGZWet/bp2KZia+Qef/2kw9D6KroCY0xy+2IF+DNEq+ttLURSVkEQ5IEyqT+50LUlwL8MiwxftxSdCJ5B4d9lTOde9ctPJdtTR5/jcr6pqja4CgmuMXZxRZ/v2IwGKZptRFJWQRLkn+q0l7tq/PEfDIsMX7cUnQ1Ppddnw3LWKnuyejlaF1Vr3YuYbjL117UAwQVGv8ImQNL1NlzIst81MXlZBFyCveMI8WlKe3Ah4Ytng/rr3NlPXuk01fOu/mqbjAlm7l6+zS9xAGCFoAZvziqW3yIq3sQrsFO4tdcOeEuIJ/SWJgvKDM+MUFPhvSTrdvnG2nOft85f+6dUJcQUEZGC4oO37xTqKPFDzwmr3mVlJXzi8O3AkKysD4K6gT3LnsoPH4BaOmYQQoKAMhBS1EoKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMUFC+oKAMjBB0jflLPxLua3KcT3d/62nppDdk2llAQRkYIehvGzdujKkvL07c1+Q4n+7+1k8Cc7wh084CCsrAqKf4sFGOWp1OsHv50QefilCgoAwMEvScRC57RzpEBjb+FmBCk9UJJZocAyD5dDTBzmbIHWndV+xY+/Dyn8qPDnYq3WBvw5F0L5zsUan0wHQ72XieBArKwCBBP5d+BzgT3HvzR1HlAdqWbfDh55Ur36P5dDTBzmbIHWmdU7TW2j1xQTmwodiQTRMj/VfSvduDu62b5jfRdjaeeNx8p++w7babCqmgd+f2G7Iuz5lKgwRNKiXPZnWfXNm6KgBlqv0DsFA6QfPpaIKdrZA72vp8iRSAZT4ZaeEkH6CDdJrsvRdNAkefbm27m3AcLv/ip/Nie+bYaiucgp6u3PvjhU0TnIl3NUjQlqYX8Gm/boruCecl8snj/0mHaT4dSbCzGXJHW2NfkTfergHvhtyVN0aVyCN7V/oRFdPv2O4mGrkPfSUv77VabKuxcAr6GPld5PWc5ESpPoKm/XpOgXy+PTdkvLxcFusb/UxgMqyRUoEk4twi+XQ0wc5myB1pTfeVW6FzL+iVSHb1bUX3Dm1uOozNbsJx3BSAvrWNrcZCKeiVMvSD48dinajVR9D+oVUVSJ7NKWkDQHKJdXfgurQfksJIzYgaNJ+OJtjZDLkjrd/J95cAlZKhIbnO5kaNpnsT+sgPbh9It9lNOL5pTVfH69tqLJSC/mz6T/bvSCdq9RF0eoFAqRXSHwDV5CsdzPK9Cy19bwL8UuITmk9HE+xshtyR1gXkC72vyxfN5uT0LpLW0r0dSPZ3v4hsm92E43x5GpKyvJutxkIpaGrJNLL62pn3DI0RdDjxrFKTw4eGBYSl5IaUfXLHvEptcmg+HU2wsxlyR1oHPClv7PBJhSnS1O0jwuXX6WTvMmny7qQiy213E4+nkmRDf6/8ja22Qiko9O+XAXCp7konSo0RtDmxcEvV4EZvbQ8b+Yt0oHOp+lNyTPl0NMHOZsgdaW1AvjdBfo0EGYPDIl9ODjPtzZ0UFRq/20438bjW7qF+nSKX2GwrnIKm9Yru2zXCqXRCYwRVsTzQXi6Y13Js+Vd23mQonILKt6Gfrr/iVCEHQV95XPN43kthFdRpOAjaOEnzeN4LCsqAg6A5Tv2Jq5CAgjLgIChiBQrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKwB2C/nnoaAGGOUxiQiygoAzcIegT0Q0LUKGTdbvL8YuOy0Y3daqv2KCgDNwh6MsLCu5RP8W7HL/ouCx+uFN9xQYFZWCEoAQ3xS9akRfizKdWRQcFZWCQoC7FL6rKLDmM+dGLp6QdieGRH1oNCz+2C6u3LnGSJZURrg2qFdpdgEyxW/Y+5lKYBc3McKLIIEFdil9UlSk5jOboxRVS7Jq9cQE5lmF3+ffaMDMgZJsllfFM5cfWrYjkfa+aNS2iZMh/rtpsK7yC7m0cGNSQnWVgkKAuxS+qysw5jEr04rCgcwBLfDKUYTMfGiG3tJCuW0br1CIbYKp0mf2P1JNnO5yDW2Nq3rXVVmgF/brCxpycLRW3sOoMEtSV+EV1mTmHUYlebDbQtEMZdlFJkjc5qppltF99VqWkpHwmpbD/kTpyonIWWfV831ZjoRW00Vay3FWPVaeroOcTx44dexpcjF9UlSk5jOboxewAEmrXpZdl2H5dyP4evSyjzTe9u1XMZnSsYSweSFcr+tpqLKyCZhel8TK5gawQW10F/SZ6xowZ5PLlUvyiqkzJYTRHLx6n18XoZMuw9cgzfHqpOZbRhrRk/+v0Z+kLdPXR87YaC6ugOUXp00pOcdYLJV0FPdQs/7FL8YuqMiWH0Ry9uDQsf4cybJMm8kaSdEgZDV6tJt/5nqh3kP1v1JNTFei7aB2W2mosrIJCizVkubEJq84YQV2JX1SXKTmM5ujFQW3yd5iHhWSft7YMCPbPsIx21HfgztnlEnknmQx59HDW2Rfismy1FVpBD0YsvXFreeReVp0xgroSv6guU3IYzdGLceYd5mEhe2xEjaHjG1qNButjAmJm3WP/E/Uld0mdolXG3rbZVmgFhf91KFWq3TFmmTGCqnAyftG1lMZuL7nQiSOFV1An4SCok/GLrqU0Ri13pRc/UFAGHAR1Mn7RpZTGv2uddaEXR1BQBhwEdTJ+sXCkNKKgDDgIiliBgjJAQfmCgjJAQfmCgjJAQfmCgjJAQfmCgjJAQfmCgjLQR9A3n91FmOuGL/L2clBQBvoIOvXhBEKjii7OqvCAgjLQR9B88CmeCQrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKAAXlCwrKwAhBXY5fvHCIPTtVnZNpjgKBgjIwQlCX4xf7d2TPTlXnZJqjQKCgDIx6incpfrHWWzbKbNTm17kS4sgbFJSBQYK6Er/4k3xT0FkJUKRldKHsyq+ldbSFDGed3ygKmRumr7AdbleYBT06b84RdpVBgroSv5j9pZSSrgQo0jK6UHbl19I62kKGs85vFISj1Z8a1zviU5tthVbQzL5Vhw2v1oMVzWSUoC7FL86sahWgSMvoQtllriV1ppbn1AOIQXrUF/LyVNmTthoLraDjumQAZPV8jVVnkKCuxC9C9x5WAYq0jCyUXUqtXGdqlodTDSAGm0z/9smjbTUWWkEjL5DlpTDWZ3d1FfRr/9DQ0J3gYvwiVHnHEqBIy+jCkqlorpXraAsZTjWAGMx/ha7W9LDVWFgFzSpqWpdIZRTqKiik3rhBI4lcil/8R9ptCVCkZXRhnalIa0kdbSHDWQ8gCBs60NWMkbYaC6ugEEZjr/8pkcuo01dQMy7FL37tc9MSoEjL6MK8S6kldbRFHk41gCDcLrtPXl6O+t5WY6EV9JUBspp5L73IqjNGUFfiF2Fe0Mk7SoAiLaMLZZe5ltTRFjKc9QCisKtcv7lJke/abCu0gqa2bjhtRtMWt1h1xgjqSvwinK5e8pYSoEjL6ELZZa4ldbSFDGc9gDDcmD985m+2mwqtoACbx4/bxI43MkZQFa7lKnophVhQ5+AgqGu5il4KCsqAg6Au5Sp6KygoAw6CFo5cRSdBQRlwEBSxAgVlgILyBQVlgILyBQVlgILyBQVlgILyBQVlgILyBQVlgILyBQVlgILyBQVlgILyBQVlgILyBQVl4ISge4IaOiZ8uM6T9GJQUAZOCAoHjjqmx1ydJ+nFoKAMnBGUBT7Fuw4KygAF5QsKygAF5QsKygAF5QsKysAgQY88Wy64xYf221VJoOTB6KY265wLAPWgmFAUlIExgs7y7fzR6n5Sst0CVRIoeRBv+60r5wJAPSgmFAVlYIignxdZTVZdgrNUu63yPFVJoPKDvJCVNsbxsADQC/1rxg657LhGVEG/Soh+dEEOu84rBE2PMn237Kb4S+q4T3NgqCkJ9Hz/amE9r5oenJJ2JIZHknsCVQcSAKpEiR7y/z6+ZJO/vmwS1CqDjm+OBiVVqkb7XfTkcMSM0ycnlD3tsEhQQcc8vDFlT5t2rFwaLxF0apCSN6eO+zQHhtKEzxNl2676uMzTpgcrpNg1e+MCcgp0IAGgSpTo/KItv/3Mt2LHg8kSvUAr0aCkStVov4ueNFtLlu8/47BITEHPlCOJHznNNjArPVvQmzPWrl17Dar2V/ao4z6VwFCS8Nmoo/yMMsYvgz4YFnQOYIlPRoEOJABUiRL9T4VUgEfisiEveCEd3BwNSqpUjfa76EhaEH2GvBXssEpMQRcNpKv5LzErPVvQbWW6d3/2+GVJiSUqEPdpDgwlCZ/7fEgq8voi6TTusxn5Db1do2AHkidqjhKF+uTz9aXlY/8t7SdjKdGgpErVaLeLnvwbSldZRR1+ylpMQeeYXqJ+1J9R5+mCmgJsj0pf0EcZ43eq4z6VwFCS8Dm5Lql5rwp9kB1Anly69CqQD0oCQJUo0Ux/+Sn0gvQjwNYiafQA+dGgpErV6KCLjuRFHyer7Y0cVokp6J669L+qPvOYld4g6Fnpffponu/v6rhPJTCUJHw+S99oavUCfXBcvmQCRCcXyAclAaBKlOgPknwXsK5olnzvWdt8QBoNSqpUjQ676MeHMbKhBypvdlgkpqB58S+mwr13Kt9mVnqDoDllY+/Jq10h4wrEfSqBoSThs1c5uWldkZ/pg6Uk4va6fCVUdyB5ouYoUVhcUm4a94j8KLEvOYwSDUqqVI12u+jMJ+UqR1X50nGNmILCrSFBtUt0usAu9AZBYblP42Uf9vcbnA3quE9zYChN+FwrjdrxesAMUyzooDZy8w6f1AIdSACoEiU6uJW8J2EwmO45wRINSqpUjfa76Ezehb9YJYIKCpD5K/vyCV4iKGxsXrJKl61kSxX3aQ4MNSWBzqkS+hR5Y4Y8iBsL9DVSgQ4kAFSJEm1EvhosbAm5M91Hj2KOBiVVqkb7XfgjrKBO4h2CInZBQRmgoHxBQRmgoHxBQRmgoHxBQRmgoHxBQRmgoHxBQRmgoHxBQRmgoHxBQRnoIOg/N8x83cQNo3s3KCgD9wt6xS/UTCHjOhMAAAzzSURBVEi4G0b3blBQBjoIWlbZxKd4JigoAxSULygoAxSULygoAxSULygoAxSULygoAxSULygoAxSULygoAxSULygoAxSULygoA0ME3Us+2x4Qtx40JyM2GJe/4UQ/DwpdtICCMjBE0OQi6zd+Mbe2z36tyYiZ/l/kbznRT7zQxX9370tllAgr6O9bf3Ii3M5LBH22DlmmVWhjfwzbyYqHpYuMYwucyJg7qXSrx8PnOC4SVNA/20a1r13vB3ahdwhavR9dDQ6jyYhwskel0gPTCyQrmtMXlRBFwvxyq9uUjD8D6n7mStpvX7Fj7cPLf2oqse7LnbdbXpbnWn+ZwyIxBc2OnZYNsLbs38xKrxD0po8p++bV4jQZcXtwt3XT/CYWSFY0py8qIYqE/sG1P1hXvVa2qp9SSfvNKVpr7Z64oBxaYt2XN7kRZ8nqUB2HVWIKuu1RunppBrPSswXdEtKwYaMDsEs6TB92qkKSEe9FvyBvP926QLKikr5oDlEk1Im+AvCR9KOqn1JJ+z1fIgVgGQlqfA5UfXlzvQxd5fh7YLrdeyPp6pN+zErPFjR729GjR+/CdD9TnHHNXiRyZqUfESj9jjpZUUlfVEIUgYQiL5WXv0n7rPtZchppImPsK2AKIZFLrPtyJz0wk6yuhjqsElPQZc/R1Wz2d1x6tqD5dK1PV+eklSQZcWhz0151sqIlfTE/RJGwX7oGxN1U635KJe2X7ktyHDv3oqGL1n3589R8snzjeYdFYgr6V/if8vJuzC5mpVcIWulFuhoUnkGSERP6yNu3D6SrkxWV9EXID1EkvFucLJPqgHU/pZL2+46+zq+UTEus+/LnTMXB2zf3fcjxtyiIKSjMq/Detx/XGcwu9AZBr0mLyWq69DFNRuxAXjX0i8hWJyua0xeVEEVCb+kXuSRko6qfktNI+y0gnyohQY1yiaqvANya3Pbpd9Id1wgqKBx7seVz25yo8wZBt0mztmxe3k0aZ8pPXCZN3p1UZHmBZEUlfdEcokioEfjU17Mjn1H3UyppvwFPgimokZRY9/UQRBXUWbxB0CnkVrNUm+1gSkbMnRQVGk8kUiUrKumL5hBFmVs+B9qVfHh6ToF+5krar4E5qJGUWPX1FFBQBkbcgyL2QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZoKB8QUEZuEPQrokzrPhvSTcMWWhAQRm4Q9C5A8daMbSEG4YsNKCgDNwhqBp8itcCCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsrAEEF/oh8wLl53K8Dopvn7dMii88QEPBSUgSGCLpM+3bjxy4UVQjIg3pwFoEMWnScm4KGgDAwRdEgkXc2WfssLWal5wAcOsOOVgJee3P3Zhfcc14gq6JnXOg7Z50Sddwj6SHu6muebcUrakRge+aEpi04JplPy6jQE333ll06ycTaBKt5OpAS889X6rFndKfaawyJBBV0WOWXTvKqj2IVeIWhW0TfIKqdpR1ghxa7ZGxdgyqJTgumUvDoNwXcT6smLg9JFUMXbiZSA9/Rsskwa6LBITEEvlzknL28/tJdZ6dmC5u49evR4Fvwgjd6yZfPSVhXOwbAg+V++JD+LTgmmM+fVaQm+azdAXswPV8fbiZSAlxFEQ0WulHFYJaagH/ehq3dGMis9W9DNwQ0bNtwDH5hiwqQNAM3I9SQ/i04JplPy6jQE30E4eZYe0FYdbydSAp45ftHPA+MX332Vrj5xHHxG8GxB8wNsB5DXSHk/la8J2QGypNDFlEWnBNMpeXUagu/+kEg+dYPX1fF2IiXg5Zb5g6x+qOWwSkxBN7ekq+FvMyu9QtC6neiqd004Ll8UAaJNWXRKMJ2SV6ch+G6Df6b8yG+DOt5OqAS8CU/+K9/NNV7gsEhMQbNqzJWv+9sjWN8Q4B2Cpvu9RR/FdYGlYaBk0VmC6ZS8Og3Bd69XkhevSRdU8XZiJeDljIro1D5iqsNneEEFhd8frdWjSQ0n3mfyBkEPSTQHNd03CQaR7/kwZ9EpwXRKXp2G4LtR0sIfXwsJLRBvJ1gC3sWvtl1llAgqKOQdW3Mwy4k6bxB0ns9NsromJUCcdRadEkyn5NU5H3wH5zuVipk0oXWBeDvPS8ATVVBn8QZBEQegoAxQUL6goAxQUL6goAxQUL6goAxQUL6goAxQUL6goAxQUL6goAxQUL6goAxQUL6goAzcL+hl/6pmyke6fXRvAwVl4H5B4fw5M+sbu390LwMFZaCDoBbwKZ4JCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsoABeULCsrAEEENil9UcVo6aXkgXOqiAgrKwBBBDYpfVPFJYI7lAa/UxX9usiqEFTT3IiOXz4R3CMojfvHlR13q5k6+qB5W8uFdjmsEFfTOmOAKgb2dCLDyDkH1iF9Uts2NltEOdirdYG/DkQBHOkQGNv5WHcyoxDbqHsO4svoBgO0VdzosElTQtr2vQfqEh+4yC71CUF3iF83bSqMy2oZiQzZNjPRfCWeCe2/+KKo8qIIZldhG3WMYq35PlpuaOywSU9ADtXPJqvtCZqVnC7o9ctCgl3/WJ37RvK00mkdLCx8nN3eQTsPqPvKveVIVUAUzKrGNescw3ihFV5nFPDDdbu4wulr2H2alZwt6ffTixYsv6RK/aN62BC2aR3s3hDwxjSpBvEj7dVN0T1UwoxLbqHsM4+1gehW6HeiwSkxBFw6iqwWDmJWeLWg+esQvmreVRmW0XolkT99W8gUg1jf6mcBkVTCjEtuofwxjw6/IckkHh0ViCvpLxTR5mdeS/eaHVwiqR/yieVtpVEZrSCJrc6NGQ3KJdXfgurRfFcyoxDaC7jGMeyM+uPTHrIj/OSwSU1B4ufG3/x7r3DKHWegNguoRv6hsK32V0ZrXlzcWSWuhmnyZhFm+d1XBjObYRiNiGH/uXL5SH8arMEEFzVvROLTu9Ex2oTcIqkv8onlbaVRGmyJN3T4iXH55XqnJ4UPDAsJSVMGMSmyjkTGMDhBUUKfxBkF1iV9Uts2NymgZg8MiX06WL9VbqgY3emt72EhVMKMS2yhIDCMKysCIe1DEPigoAxSULygoAxSULygoAxSULygoAxSULygoAxSULygoAxTUjZyzy0/2Gl55RXOXc+cK0/xRUDcSGF3VNhWL22moGhRkr6V4RTsN0Y7/9xMvmz8K6kbK2/uf9442tNfF/lNkw6N2Gi6V1zAlTYg4fxTUjYh4grUg4vxRUDci4gnWgojzR0HdiIgnWAsizh8FdSMinmAtiDh/FNSNRNn7buMTdqOmp06119L4hJ2Gq1Fa5qQFEeePgrqRi/Ya8ux+Ni811V7LJbsftrN7mAdFxPmjoIjQoKCI0KCgiNCgoIjQoKCI0KCgiNCgoIjQoKBuYkHth/8vf/Odrdp6WHVVP55Su+K0BzyI04g6fxTUPfxZ6+7vNWlaGBwoulxTD6uu6oZv4jKuV/rxgQ7iNMLOHwV1D4vHArQ8RrZSH3/eqd+90sPStUDDmsUAvTc+0EGcRtj5o6DuYdL7AH22ka3nvxnp1O9e6WHpWnAogP9VvvVAB3EaYeePgrqHifPl3z0JgPx8JDj3u1d6KBsFGyDv3YeO2ezi9EGcRtj5o6APzpLHWsKi1wFakf/BrO1DsaUrLHail9JD2SjYkNP5hVTbXZw+iOfPHwV1D3/EZv1VPTf3b7Lt3MVB6WHasNGwuucDH8RphJ0/CuomPmjUaA/8LZHIVyd/90oPumGj4aUSZcuW3fxgB3EaUeePgiJCg4IiQoOCIkKDgiJCg4IiQoOCIkKDgiJCg4IiQoOCIkKDgiJCg4IiQoOCIkKDgiJCg4IiQoOCIkKDgiJCg4IiQoOCIkKDghrJ6fq29j57eONQo2fiGhzmj4Iaib0TnHHT6Jm4Bof5o6BGYjrBeaNqx6yCvAHVK70Dmf1qJLQ4vGXoN52b1x4PeSNj2tf7h/cs7cNh/iiokZhO8BfxOdfKXTndP+9WOZjbOe+UDznBwTfuRV/7siMckoQX1ND5o6BGYjrBr84DeGYT/PbhK8Wh63qAuuQEPw2QcHbEEoAo4QU1dP4oqJGYTvDI9wG6btxdd9nJaOi+AeBRcoL7kxP8ylLICxVeUEPnj4IaiekEr38i95+yl2a+DYcCcud1zbvgp5zgzxJhn/hP8YbOHwU1ktNFq1evPibv1Tqxq+BiQuOB7cdnPh+T0E05wXmDYwdWvcd7lvbhMH8UVCQOfgyX6vKexAOgw/xRUJG43a91vT3sMmHRYf4oKCI0KCgiNCgoIjQoKCI0KCgiNCgoIjQoKCI0KCgiNCgoIjQoKCI0KCgiNCgoIjQoKCI0KCgiNP8Ply6CzU9sLsgAAAAASUVORK5CYII=" /><!-- -->
+Fig. 4. Example of two eigenvectors obtained from the training species
+phylogeny.</p>
+<hr />
+<p>The pattern shown by the first eigenvector essentially contrasts
+Equids and the other odd-toed ungulate species whereas the pattern shown
+by the second eigenvector essentially contrasts tapirs and
+Rhinocerotids.</p>
+</div>
+<div id="estimate-weighting-parameters-empirically" class="section level2">
+<h2>Estimate weighting parameters empirically</h2>
+<p>Because users do often not have information about the best set of
+weighting function parameters to use for modelling,
+<strong>MPSEM</strong> as has a function called
+<code>PEM.fitSimple()</code> that allows them to empirically estimate a
+single value of parameter <span class="math inline">\(a\)</span> for the
+whole phylogeny using restricted maximum likelihood. Function
+<code>PEM.fitSimple()</code> does not estimate parameter <span class="math inline">\(\psi\)</span> because the latter has no effect
+when its value is assumed to be constant throughout the phylogeny. A
+function to estimate different sets of weighting function parameters for
+different portions of the phylogeny has yet to be developed. That
+function requires a response variable that will be used to optimize the
+steepness parameter (here the <span class="math inline">\(\log_{10}\)</span> neonate weight) as well as
+lower and upper bounds for the admissible parameter values and is called
+as follows:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEM.fitSimple</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> perissodactyla.train[,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="cn">NULL</span>,</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">w =</span> perissodactyla.pgraph,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;distance&quot;</span>,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">sp=</span><span class="st">&quot;species&quot;</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">lower =</span> <span class="dv">0</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">upper =</span> <span class="dv">1</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.PEM_opt1</span></code></pre></div>
+<p>If other traits are to be used in the model (here the <span class="math inline">\(\log_{10}\)</span> female weight), they are passed
+to argument <code>x</code> as follows:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEM.fitSimple</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> perissodactyla.train[,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> perissodactyla.train[,<span class="st">&quot;log.female.wt&quot;</span>],</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">w =</span> perissodactyla.pgraph,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">d =</span> <span class="st">&quot;distance&quot;</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">sp=</span><span class="st">&quot;species&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">lower =</span> <span class="dv">0</span>,</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">upper =</span> <span class="dv">1</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.PEM_opt2</span></code></pre></div>
+<p>The results of the latter calls are PEMs similar to that obtained
+using PEM.build(), with additional information resulting from the
+optimization process. It is noteworthy that estimates of the steepness
+parameter (stored as element <code>$optim\$par</code> of the PEM
+objects) and, consequently, the resulting phylogenetic eigenvectors,
+will be different depending on the use of auxiliary traits. In the
+example above, for instance, <span class="math inline">\(a\)</span> was
+estimated to 0 by <code>PEM.fitSimple()</code> when no auxiliary trait
+is involved (first call) and to 0.08 when the female weight is used as
+an auxiliary trait (second call).</p>
+</div>
+<div id="phylogenetic-modelling" class="section level2">
+<h2>Phylogenetic modelling</h2>
+<p>To model trait values, PEM are used as descriptors in other modelling
+method. Any suitable method can be used. For instance, package
+<strong>MPSEM</strong> contains a utility function called
+<code>lmforwardsequentialAICc()</code> that does step-wise variable
+addition in multiple regression analysis on the basis of the corrected
+Akaike Information Criterion (AICc) <span class="citation">(Hurvich and
+Tsai 1993)</span>:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lmforwardsequentialAICc</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> perissodactyla.train[,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> perissodactyla.PEM_opt1</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> lm1</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm1)</span></code></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = as.formula(paste(p1, p2, sep = &quot;&quot;)), data = df1)
+## 
+## Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.122057 -0.053781 -0.004971  0.055333  0.186364 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  4.39975    0.02740  160.58  &lt; 2e-16 ***
+## V_2         -1.31105    0.09491  -13.81  7.7e-08 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.09491 on 10 degrees of freedom
+## Multiple R-squared:  0.9502, Adjusted R-squared:  0.9452 
+## F-statistic: 190.8 on 1 and 10 DF,  p-value: 7.699e-08</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lmforwardsequentialAICc</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> perissodactyla.train[,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> perissodactyla.train[,<span class="st">&quot;log.female.wt&quot;</span>,<span class="at">drop=</span><span class="cn">FALSE</span>],</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> perissodactyla.PEM_opt2</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> lm2</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm2) </span></code></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = as.formula(paste(p1, p2, sep = &quot;&quot;)), data = df1)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.05282 -0.02450 -0.01017  0.02926  0.05481 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   -2.65045    0.22175 -11.952 2.21e-06 ***
+## log.female.wt  1.23522    0.03879  31.840 1.03e-09 ***
+## V_1            0.91466    0.04849  18.864 6.45e-08 ***
+## V_8           -0.10654    0.04208  -2.532   0.0352 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.04185 on 8 degrees of freedom
+## Multiple R-squared:  0.9923, Adjusted R-squared:  0.9894 
+## F-statistic: 341.6 on 3 and 8 DF,  p-value: 8.829e-09</code></pre>
+<p>Notice that to pass a single auxiliary trait to
+<code>lmforwardsequentialAICc()</code> in the current version of
+<strong>MPSEM</strong>, it is mandatory to set <code>drop=FALSE</code>
+to the bracket operator so that the variable name be conserved. Failure
+to do so will preclude one to make predictions using the resulting
+linear model. To obtain predictions, we need to calculate the locations
+of the target species with respect to the phylogeny of the model
+species. This is accomplished by <code>getGraphLocations()</code>, to
+which we give the tree for all species (model + targets) and the names
+(or indices) of the target species. Then, we use the
+<code>predict()</code> method for PEM objects. The latter takes, in
+addition to the PEM object, the locations of the target species as
+obtained by <code>getGraphLocations()</code>, an <code>lm</code> (or
+<code>glm</code>) object involving the eigenvectors of the PEM, and a
+table of auxiliary trait values for the target species, which can be
+omitted if no auxiliary trait is present in the linear model.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">getGraphLocations</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.tree,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">targets =</span> <span class="st">&quot;Dicerorhinus sumatrensis&quot;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.loc</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> perissodactyla.PEM_opt2,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">targets =</span> perissodactyla.loc,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">lmobject =</span> lm2,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">newdata =</span> perissodactyla.test,</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval =</span> <span class="st">&quot;prediction&quot;</span>,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span>) <span class="ot">-&gt;</span> pred</span></code></pre></div>
+<p>Here, the predicted neonatal weight for the Sumatran rhinoceros is
+26.7 <span class="math inline">\(\,\mathrm{kg}\)</span> and the bounds
+of the <span class="math inline">\(95\%\)</span> prediction interval are
+17.2 and 41.4 <span class="math inline">\(\,\mathrm{kg}\)</span>, while
+the observed value was actually 35 <span class="math inline">\(\,\mathrm{kg}\)</span>.</p>
+</div>
+</div>
+<div id="cross-validating-pem-predictions" class="section level1">
+<h1>Cross-validating PEM predictions</h1>
+<p>Here, I will show you how to perform a leave-one-out cross-validation
+of a data set using the <strong>R</strong> code from the previous two
+sections. Predictions will be added to table
+<code>perissodactyla.data</code>:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  perissodactyla.data,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">predictions =</span> <span class="cn">NA</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">lower =</span> <span class="cn">NA</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">upper =</span> <span class="cn">NA</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> perissodactyla.data</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>jackinfo <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> 1L<span class="sc">:</span><span class="fu">nrow</span>(perissodactyla.data)) {</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  jackinfo[[i]] <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getGraphLocations</span>(</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    perissodactyla.tree,</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">targets =</span> <span class="fu">rownames</span>(perissodactyla.data)[i]</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="ot">-&gt;</span> jackinfo[[i]][[<span class="st">&quot;loc&quot;</span>]]</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">PEM.fitSimple</span>(</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> perissodactyla.data[<span class="sc">-</span>i,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> perissodactyla.data[<span class="sc">-</span>i,<span class="st">&quot;log.female.wt&quot;</span>],</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">w =</span> jackinfo[[i]][[<span class="st">&quot;loc&quot;</span>]]<span class="sc">$</span>x</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="ot">-&gt;</span> jackinfo[[i]][[<span class="st">&quot;PEM&quot;</span>]]</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lmforwardsequentialAICc</span>(</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> perissodactyla.data[<span class="sc">-</span>i,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> perissodactyla.data[<span class="sc">-</span>i,<span class="st">&quot;log.female.wt&quot;</span>,<span class="at">drop=</span><span class="cn">FALSE</span>],</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> jackinfo[[i]][[<span class="st">&quot;PEM&quot;</span>]]</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="ot">-&gt;</span> jackinfo[[i]][[<span class="st">&quot;lm&quot;</span>]]</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">predict</span>(</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> jackinfo[[i]][[<span class="st">&quot;PEM&quot;</span>]],</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">targets =</span> jackinfo[[i]][[<span class="st">&quot;loc&quot;</span>]],</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">lmobject =</span> jackinfo[[i]][[<span class="st">&quot;lm&quot;</span>]],</span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">newdata =</span> perissodactyla.data[i,<span class="st">&quot;log.female.wt&quot;</span>,<span class="at">drop=</span><span class="cn">FALSE</span>],</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">interval =</span> <span class="st">&quot;prediction&quot;</span>,</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">level =</span> <span class="fl">0.95</span></span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="ot">-&gt;</span> predictions</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>(predictions) <span class="ot">-&gt;</span> perissodactyla.data[i, <span class="fu">c</span>(<span class="st">&quot;predictions&quot;</span>, <span class="st">&quot;lower&quot;</span>, <span class="st">&quot;upper&quot;</span>)]</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(i, predictions)</span></code></pre></div>
+<p>Because the result of <code>getGraphLocations()</code> includes the
+phylogenetic graph with the target species removed has its element
+<code>$x</code>, it is not necessary to re-calculate the tree with the
+target species dropped and the phylogenetic graph as we did previously
+for explanatory purposes. Also, I suggest storing the internal
+information about each cross-validation steps into a list (hereby called
+<code>jackinfo</code>), so it is possible to access the many details of
+the analyses later on.</p>
+<p><img src="data:image/png;base64,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" /><!-- -->
+Fig. 5. Leave-one-out crossvalidated prediction of the neonatal weight
+for 13 odd-toed ungulate species.</p>
+<hr />
+<p>From the present cross-validation, we found that the (<span class="math inline">\(\log_{10}\)</span>) neonatal body mass can be
+predicted with a cross-validated <span class="math inline">\(R^{2}\)</span> of 0.96 (Fig. 5).</p>
+</div>
+<div id="other-utility-functions" class="section level1">
+<h1>Other utility functions</h1>
+<div id="influence-matrix" class="section level2">
+<h2>Influence matrix</h2>
+<p>The influence matrix is used internally to calculate PEM. It is a
+matrix having as many rows as the number of vertices (species + nodes)
+and as many columns as the number of edges. Any given element of the
+influence matrix is coding whether a vertex, which is represented a row
+of the matrix is influenced an edge, which is represented by a column of
+the matrix. In the context of PEM, a vertex is influenced by an edge
+when the former has ancestors on the latter or, in other words, when an
+edge is on the path leading from a tip to the root of the tree. The
+influence matrix is obtained as follows:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEMInfluence</span>(perissodactyla.pgraph) <span class="ot">-&gt;</span> res</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>res</span></code></pre></div>
+<pre><code>##                      E1 E2 E3 E4 E5 E6 E7 E8 E9 E10 E11 E12 E13 E14 E15 E16 E17
+## Rhinoceros sondaicus  1  1  1  1  0  0  0  0  0   0   0   0   0   0   0   0   0
+## Rhinoceros unicornis  1  1  1  0  1  0  0  0  0   0   0   0   0   0   0   0   0
+## Diceros bicornis      1  1  0  0  0  1  1  0  0   0   0   0   0   0   0   0   0
+## Ceratotherium simum   1  1  0  0  0  1  0  1  0   0   0   0   0   0   0   0   0
+## Tapirus terrestris    1  0  0  0  0  0  0  0  1   1   1   0   0   0   0   0   0
+## Tapirus pinchaque     1  0  0  0  0  0  0  0  1   1   0   1   0   0   0   0   0
+## Tapirus indicus       1  0  0  0  0  0  0  0  1   0   0   0   1   0   0   0   0
+## Equus grevyi          0  0  0  0  0  0  0  0  0   0   0   0   0   1   1   1   1
+## Equus burchelli       0  0  0  0  0  0  0  0  0   0   0   0   0   1   1   1   0
+## Equus zebra           0  0  0  0  0  0  0  0  0   0   0   0   0   1   1   0   0
+## Equus africanus       0  0  0  0  0  0  0  0  0   0   0   0   0   1   0   0   0
+## Equus hemionus        0  0  0  0  0  0  0  0  0   0   0   0   0   1   0   0   0
+## n1                    0  0  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0
+## n2                    1  0  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0
+## n3                    1  1  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0
+## n4                    1  1  1  0  0  0  0  0  0   0   0   0   0   0   0   0   0
+## n5                    1  1  0  0  0  1  0  0  0   0   0   0   0   0   0   0   0
+## n6                    1  0  0  0  0  0  0  0  1   0   0   0   0   0   0   0   0
+## n7                    1  0  0  0  0  0  0  0  1   1   0   0   0   0   0   0   0
+## n8                    0  0  0  0  0  0  0  0  0   0   0   0   0   1   0   0   0
+## n9                    0  0  0  0  0  0  0  0  0   0   0   0   0   1   1   0   0
+## n10                   0  0  0  0  0  0  0  0  0   0   0   0   0   1   1   1   0
+##                      E18 E19 E20 E21
+## Rhinoceros sondaicus   0   0   0   0
+## Rhinoceros unicornis   0   0   0   0
+## Diceros bicornis       0   0   0   0
+## Ceratotherium simum    0   0   0   0
+## Tapirus terrestris     0   0   0   0
+## Tapirus pinchaque      0   0   0   0
+## Tapirus indicus        0   0   0   0
+## Equus grevyi           0   0   0   0
+## Equus burchelli        1   0   0   0
+## Equus zebra            0   1   0   0
+## Equus africanus        0   0   1   0
+## Equus hemionus         0   0   0   1
+## n1                     0   0   0   0
+## n2                     0   0   0   0
+## n3                     0   0   0   0
+## n4                     0   0   0   0
+## n5                     0   0   0   0
+## n6                     0   0   0   0
+## n7                     0   0   0   0
+## n8                     0   0   0   0
+## n9                     0   0   0   0
+## n10                    0   0   0   0</code></pre>
+</div>
+<div id="update-and-forced-pem-parameters" class="section level2">
+<h2>Update and forced PEM parameters</h2>
+<p>The calculation of the influence matrix performed by
+<code>PEM.build()</code> for a given phylogenetic graph need not be done
+every time new weighting function parameters are to be tried. For that
+reason, <strong>MPSEM</strong> provides a function called
+<code>PEM.updater()</code> that takes a previously calculated PEM
+object, applies new edge weighting, and recalculates the phylogenetic
+eigenvectors:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEM.updater</span>(<span class="at">object =</span> perissodactyla.PEM, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">psi =</span> <span class="dv">1</span>) <span class="ot">-&gt;</span> res</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>res</span></code></pre></div>
+<pre><code>## A phylogenetic eigenvector map (PEM) for  12  species:
+## Rhinoceros sondaicus,Rhinoceros unicornis,Diceros bicornis,Ceratotherium simum,Tapirus terrestris,Tapirus pinchaque,Tapirus indicus,Equus grevyi ... Equus hemionus 
+## obtained from the following phylogenetic graph:
+## 
+## A graph with 21 edges and 22 vertices. 
+## Edge labels: E1 E2 E3 E4 E5 E6 E7 E8 E9 E10 E11 E12 E13 E14 E15 E16 E17 E18 E19 E20 E21 
+## Vertex labels: Rhinoceros sondaicus Rhinoceros unicornis Diceros bicornis Ceratotherium simum Tapirus terrestris Tapirus pinchaque Tapirus indicus Equus grevyi Equus burchelli Equus zebra Equus africanus Equus hemionus n1 n2 n3 n4 n5 n6 n7 n8 n9 n10 
+## Available edge information:  distance 
+## Available vertex information:  species</code></pre>
+<p>The result of <code>PEM.build()</code> and <code>PEM.updater()</code>
+does not contain all the information necessary to predict trait values.
+Hence, neither of these functions is given information about the
+response variable and auxiliary traits. To perform these preliminary
+calculations, <strong>MPSEM</strong> provides the user with function
+<code>PEM.forcedSimple()</code> that produce the same output as
+<code>PEM.fitSimple()</code> with user-provided values of weighting
+parameters. It is called as follows:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">PEM.forcedSimple</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> perissodactyla.train[,<span class="st">&quot;log.neonatal.wt&quot;</span>],</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> perissodactyla.train[,<span class="st">&quot;log.female.wt&quot;</span>],</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">w =</span> perissodactyla.pgraph,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">a =</span> steepness,</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">psi =</span> evol_rate</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> res</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>res</span></code></pre></div>
+<pre><code>## A phylogenetic eigenvector map (PEM) for  12  species:
+## Rhinoceros sondaicus,Rhinoceros unicornis,Diceros bicornis,Ceratotherium simum,Tapirus terrestris,Tapirus pinchaque,Tapirus indicus,Equus grevyi ... Equus hemionus 
+## obtained from the following phylogenetic graph:
+## 
+## A graph with 21 edges and 22 vertices. 
+## Edge labels: E1 E2 E3 E4 E5 E6 E7 E8 E9 E10 E11 E12 E13 E14 E15 E16 E17 E18 E19 E20 E21 
+## Vertex labels: Rhinoceros sondaicus Rhinoceros unicornis Diceros bicornis Ceratotherium simum Tapirus terrestris Tapirus pinchaque Tapirus indicus Equus grevyi Equus burchelli Equus zebra Equus africanus Equus hemionus n1 n2 n3 n4 n5 n6 n7 n8 n9 n10 
+## Available edge information:  distance, a, psi 
+## Available vertex information:  species</code></pre>
+<p>It is noteworthy that contrary to function PEM.fitSimple(), function
+<code>PEM.forcedSimple()</code> can be used to apply different weighting
+parameters for different edges.</p>
+</div>
+<div id="pem-scores" class="section level2">
+<h2>PEM scores</h2>
+<p>PEM scores are the values of target species on the eigenfunctions
+underlying the PEM. These scores are calculated from the graph locations
+and a PEM object using function <code>Locations2PEMscores()</code> as
+follows:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Locations2PEMscores</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> perissodactyla.PEM_opt2,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">gsc =</span> perissodactyla.loc</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>) <span class="ot">-&gt;</span> scores</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>scores</span></code></pre></div>
+<pre><code>## $scores
+##                                 V_1       V_2         V_3           V_4
+## Dicerorhinus sumatrensis -0.2439632 -0.287517 -0.01215849 -5.551115e-17
+##                               V_5           V_6          V_7           V_8
+## Dicerorhinus sumatrensis 0.351012 -0.0007381739 -0.005777055 -6.102112e-17
+##                                    V_9         V_10         V_11
+## Dicerorhinus sumatrensis -6.383004e-16 1.349443e-16 4.666602e-16
+## 
+## $VarianceFactor
+##   Dicerorhinus sumatrensis
+## y              0.004808351</code></pre>
+<p>The function is used internally by PEM-class <code>predict</code>
+method, and therefore need not be called when performing linear
+phylogenetic modelling as exemplified above. It comes in handy when the
+PEM is used together with other modelling approaches (e.g. multivariate
+regression trees, linear discriminant analysis, artificial neural
+networks) that have <code>predict</code> methods that are not specially
+adapted for phylogenetic modelling.</p>
+</div>
+<div id="miscellaneous" class="section level2">
+<h2>Miscellaneous</h2>
+<p>Package <strong>MPSEM</strong> comes with functions, some implemented
+in the <strong>C</strong> language, to simulate quantitative traits
+evolution by Ornstein-Uhlenbeck process on potentially large phylogenies
+<span class="citation">(Butler and King 2004)</span>. These functions
+are only useful to perform simulations, which is a rather advanced
+matter outside the scope of the present tutorial. I refer the user to
+<strong>MPSEM</strong> help files for further details.</p>
+<p>In addition to function <code>Phylo2DirectedGraph()</code>, which we
+have seen previously <strong>MPSEM</strong> also has built-in graph
+manipulation functions to populate a graph with vertices, add and remove
+vertices and edges, etc. These functions were mainly intended to be
+called internally by <strong>MPSEM</strong> functions. They were made
+visible upon loading the package because of their potential usefulness
+to some advanced applications that are outside the scope of the present
+tutorial. Again, I refer the user to <strong>MPSEM</strong> help files
+for further details.</p>
+</div>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-Butler2004" class="csl-entry">
+Butler, M. A., and A. A. King. 2004. <span>“Phylogenetic Comparative
+Analysis: A Modeling Approach for Adaptive Evolution.”</span>
+<em>American Naturalist</em> 164: 683–95. <a href="https://doi.org/10.1086/426002">https://doi.org/10.1086/426002</a>.
+</div>
+<div id="ref-Guenard2013" class="csl-entry">
+Guénard, G., P. Legendre, and P. Peres-Neto. 2013. <span>“Phylogenetic
+Eigenvector Maps: A Framework to Model and Predict Species
+Traits.”</span> <em>Methods in Ecology and Evolution</em> 4: 1120–31. <a href="https://doi.org/10.1111/2041-210X.12111">https://doi.org/10.1111/2041-210X.12111</a>.
+</div>
+<div id="ref-Guenard2014" class="csl-entry">
+Guénard, G., P. C. von der Ohe, S. C. Walker, S. Lek, and P. Legendre.
+2014. <span>“Using Phylogenetic Information and Chemical Properties to
+Predict Species Tolerances to Pesticides.”</span> <em>Proceedings of the
+Royal Society B: Biological Sciences</em> 281 (20133239): 20133239. <a href="https://doi.org/10.1098/rspb.2013.3239">https://doi.org/10.1098/rspb.2013.3239</a>.
+</div>
+<div id="ref-Guenard2011" class="csl-entry">
+Guénard, G., P. C. von der Ohe, D. de Zwart, P. Legendre, and S. Lek.
+2011. <span>“Using Phylogenetic Information to Predict Species
+Tolerances to Toxic Chemicals.”</span> <em>Ecological Applications</em>
+21: 3178–90. <a href="https://doi.org/10.1890/10-2242.1">https://doi.org/10.1890/10-2242.1</a>.
+</div>
+<div id="ref-Hurvich1993" class="csl-entry">
+Hurvich, C. M., and C.-L. Tsai. 1993. <span>“A Corrected
+<span>A</span>kaike Information Criterion for Vector Autoregressive
+Model Selection.”</span> <em>Journal of Time Series Analysis</em> 14:
+271–79. <a href="https://doi.org/10.1111/j.1467-9892.1993.tb00144.x">https://doi.org/10.1111/j.1467-9892.1993.tb00144.x</a>.
+</div>
+<div id="ref-Purvis1995" class="csl-entry">
+Purvis, A., and A. Rambaut. 1995. <span>“Comparative Analysis by
+Independent Contrasts (<span>CAIC</span>): An <span>A</span>pple
+<span>M</span>acintosh Application for Analysing Comparative
+Data.”</span> <em>Computer Applications in the Biosciences</em> 11:
+247–51. <a href="https://doi.org/10.1093/bioinformatics/11.3.247">https://doi.org/10.1093/bioinformatics/11.3.247</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
