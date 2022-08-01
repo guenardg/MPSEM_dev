@@ -23,17 +23,27 @@ lengths as its first argument, followed by an arbitrary number of parameters pro
    x = object containing a phylogenetic graph.
 Corriger et compléter SVP.
 
+Réponse: j'ai tâché de simplifier ces explications. J'espère que ça sera désormais plus clair.
+
 • L. 257, l'information provenant de 
    str(perissodactyla.pgraph)
 est imprimée en caractères extrêmement petits. Cette information est illisible. La cause: LaTeX a décidé d'écrire toute l'information du dernier élément "attr(*, "vlabel")" sur une seule ligne. 
 => Pourrais-tu faire imprimer ce "snippet" avec une police de taille lisible, quitte à ce que le dernier élément occupe plusieurs lignes?
 
+Réponse: L'affichage est maintenant à la même taille que le reste du texte. Une commande d'abbréviation des l'entête du fichier Rmarkdown s'assure que l'affichage est raisonnablement verbeux.
+
 • Lignes 262, 269 et 273: j'ai indiqué de faire une liste à puces, créant ainsi un paragraphe pour l'élément "edge", un second pour l'élément "vertex" et un dernier pour les autres éléments que je ne sais pas extraire séparément. Peux-tu insérer le code LaTeX pour demander cette liste à trois puces?
+
+Réponse: fait.
 
 • L. 332-333, je donne ici un exemple de la façon d'extraire les vecteurs propres avec as.data.frame(). J'ai écrit la commande comme dans la console R. Revoir au besoin. 
 
+Réponse: L'exemple se trouve dans le code générant la figure contenant l'exemple de vecteurs singuliers. Je l'ai mis en retrait et y ai ajouté un commentaire pour le mettre encore plus en évidence.
+
 • L. 441-442, "it is mandatory to set {\tt drop=FALSE} to the bracket operator"
 => Question: qu'est-ce que ce "bracket operator"? Je vois rien qui pourrait s'appeler ainsi dans les exemples lm1 et lm2, L. 429 et 433, juste au-dessus. Faudrait-il fournir un exemple pour que le lecteur comprenne de quoi il s'agit?
+
+Réponse: J'ai amélioré l'explication. En fait, c'était pour que l'opérateur retourne un objet data.frame (ou matrix) car quand une seule colonne est sélectionnée sur un data.frame ou une matrice, R a la fâcheuse habitude de ne retourner qu'une suite de valeurs sans nom, ce qui ne passe pas dans les méthodes "predict" qui s'attendent à ce que leur paramètre "newdata" soit un data.frame.
 
 • L. 505–510, ta phrase originelle était :
 "Because the result of {\tt getGraphLocations()} includes the phylogenetic graph with the target species removed has its element $x, it is not necessary to re-calculate the tree with the target species dropped and the phylogenetic graph as we did previously for explanatory purposes."
