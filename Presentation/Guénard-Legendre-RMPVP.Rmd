@@ -1,0 +1,34 @@
+---
+title: 'Phylogenetic Modelling Using Phylogenetic Eigenvector Maps (PEM): Theory and
+  Practice'
+author:
+  - Guillaume Guénard
+  - Pierre Legendre
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Plan
+
+A theoretical underpinning of how trait evolve
+
+* Neutral trait evolution _vs_ selective trait evolution
+
+Neutral trait evolution proceeds randomly, in any direction, from parent to
+offspring.
+
+* Selective trait evolution:
+
+Selective trait evolution happens at a given time when it does
+
+- stabilizing selection
+- directional selection
+
+
+
+
+
