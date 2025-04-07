@@ -1,11 +1,11 @@
 ## **************************************************************************
 ##
-##    (c) 2010-2022 Guillaume Guénard
+##    (c) 2010-2024 Guillaume Guénard
 ##        Department de sciences biologiques,
 ##        Université de Montréal
 ##        Montreal, QC, Canada
 ##
-##    **Trait value simulator**
+##    ** Legacy Trait Evolution Simulator **
 ##
 ##    This file is part of MPSEM
 ##
@@ -26,16 +26,18 @@
 ##
 ## **************************************************************************
 ##
-#' Simulate the Evolution of a Quantitative Trait
+#' Legacy Trait Evolution Simulator
 #' 
 #' @description Functions to simulate the evolution of a quantitative trait
 #' along a phylogenetic tree inputted as an object of class \sQuote{phylo}
-#' (package \link{ape}) or a \code{\link{graph-class}} object.
+#' (package \link[ape]{ape}) or a \code{\link{graph-class}} object.
 #' 
 #' @name trait-simulator
 #' 
+#' @aliases trait simulation
+#' 
 #' @param tp A rooted phylogenetic tree of class \sQuote{phylo} (see package
-#' \link{ape}).
+#' \link[ape]{ape}).
 #' @param tw Transition matrix giving the probability that the optimum trait
 #' value changes from one state (row) to another (column) at vertices. 
 #' All rows must sum to 1.
@@ -66,9 +68,9 @@
 #' thus obtained can be used as indices of a vector featuring the actual optimum
 #' trait values corresponding to the simulated selection regimes. 
 #'
-#' The resulting
-#' optimum trait values at the nodes are used by \code{\link{TraitOUsimTree}} as
-#' its argument \code{opt} to simulate trait values at nodes and tips.
+#' The resulting optimum trait values at the nodes are used by
+#' \code{\link{TraitOUsimTree}} as its argument \code{opt} to simulate trait
+#' values at nodes and tips.
 #' 
 #' Function \code{\link{TraitVarGraphSim}} uses a graph variance function
 #' (either \code{OUvar} or \code{PEMvar}) to reconstruct a covariance matrix,
@@ -96,11 +98,11 @@
 #' 
 #' @references
 #' Butler, M. A. & King, A. A. 2004. Phylogenetic comparative analysis: a
-#' modeling approach for adaptive evolution. American Naturalist 164: 683-695.
+#' modeling approach for adaptive evolution. American Naturalist 164: 683-695
 #' 
 #' Guénard, G., Legendre, P., and Peres-Neto, P. 2013. Phylogenetic eigenvector
-#' maps (PEM): a framework to model and predict species traits.  Methods in Ecology 
-#' and Evolution 4: 1120--1131
+#' maps: a framework to model and predict species traits.  Methods in Ecology 
+#' and Evolution 4: 1120-1131
 #' 
 #' @importFrom stats rnorm
 #' 
@@ -157,11 +159,15 @@
 #'   abline(v=0)
 #' }
 #' 
-#' ## Recursively displays the simulated traits.
+#' ## Iteratively displays the simulated traits.
+#' ## Left-click on the display area to go to the next plot.
+#' ## To terminate: right-click (WIndows, X11), esc key (Mac), or hit the
+#' ## "finish" button (RStudio).
+#' 
 #' for(i in 1:10) {
 #'   DisplayTreeEvol(tree2,y4[i,])
 #'   if(is.null(locator(1)))
-#'     break                  ## Stops recursive display on a mouse right-click.
+#'     break  ## Terminate: 
 #' }
 #' 
 #' @useDynLib MPSEM, .registration = TRUE
@@ -170,7 +176,10 @@ NULL
 #' 
 #' @describeIn trait-simulator
 #' 
-#' Simulates the evolution of trait optima along a phylogeny.
+#' Trait Optima Simulator
+#' 
+#' Simulates the evolution of trait optima along a phylogeny as a Markov
+#' process.
 #' 
 #' @export
 EvolveOptimMarkovTree <- function(tp, tw, anc, p=1, root=tp$edge[1,1]) {
@@ -205,7 +214,10 @@ EvolveOptimMarkovTree <- function(tp, tw, anc, p=1, root=tp$edge[1,1]) {
 #' 
 #' @describeIn trait-simulator
 #' 
-#' Simulates the evolution of trait values along a phylogeny.
+#' Trait Value Simulator
+#' 
+#' Simulates the evolution of trait values along a phylogeny as a
+#' Ornstein–Uhlenbeck process.
 #' 
 #' @export
 TraitOUsimTree <- function(tp, a, sigma, opt, p=1, root=tp$edge[1,1]) {
@@ -237,7 +249,11 @@ TraitOUsimTree <- function(tp, a, sigma, opt, p=1, root=tp$edge[1,1]) {
 #' 
 #' @describeIn trait-simulator
 #' 
-#' Describe here...
+#' Ornstein–Uhlenbeck Variance Calculator
+#' 
+#' Calculates the expected covariance matrix for a trait evolving following an
+#' Ornstein–Uhlenbeck process. This function is meant to be used with function
+#' \code{TraitVarGraphSim}.
 #' 
 #' @export
 OUvar <- function(d, a=0, theta=1, sigma=1) {
@@ -255,7 +271,11 @@ OUvar <- function(d, a=0, theta=1, sigma=1) {
 #' 
 #' @describeIn trait-simulator
 #' 
-#' Describe here...
+#' Phylogenetic Eigenvector Maps Variance Calculator
+#' 
+#' Calculates the covariance on the basis of the covariance model (power
+#' function) associated used in calculating Phylogenetic Eigenvector Maps. This
+#' function is meant to be used with function \code{TraitVarGraphSim}.
 #' 
 #' @export
 PEMvar <- function(d, a=0, psi=1) {
@@ -272,7 +292,12 @@ PEMvar <- function(d, a=0, psi=1) {
 #' 
 #' @describeIn trait-simulator
 #' 
-#' Describe here...
+#' Covariance-based Trait Evolution Simulator.
+#' 
+#' Simulates trait evolution as covariates drawn from a multi-normal
+#' distribution whose covariance is estimated using an external function
+#' (functions \code{OUvar}, \code{PEMvar} provided with the package or any
+#' user-provided function).
 #' 
 #' @export
 TraitVarGraphSim <- function(x, variance, distance="distance", p=1, ...) {
@@ -281,9 +306,9 @@ TraitVarGraphSim <- function(x, variance, distance="distance", p=1, ...) {
   if(is.null(x$edge[[distance]]))
     stop("There is no property '",distance,"' for the edges of the graph.")
   if(is.null(x$vertex$species)) {
-    B <- PEMInfluence(x,mroot = FALSE)
+    B <- InflMat(x)
   } else {
-    B <- PEMInfluence(x,mroot = FALSE)[x$vertex$species,]
+    B <- InflMat(x)[x$vertex$species,]
   }
   n <- nrow(B)
   if(!missing(variance)) {

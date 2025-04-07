@@ -1,0 +1,730 @@
+---
+title: "Simulating phylogenetic networks using MPSEM"
+author: "Guillaume Guénard"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+bibliography: ../inst/bib/Simulating_phylogenetic_network.bib
+vignette: >
+  %\VignetteIndexEntry{Simulating phylogenetic networks using MPSEM}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+hook_output <- knitr::knit_hooks$get("output")
+knitr::knit_hooks$set(output = function(x, options) {
+  if (!is.null(n <- options$out.lines)) {
+    x <- xfun::split_lines(x)
+    if (length(x) > n) {
+      # truncate the output
+      x <- c(head(x, n), "....\n")
+    }
+    x <- paste(x, collapse = "\n")
+  }
+  hook_output(x, options)
+})
+##
+### Load packages here:
+##
+### Figure counter:
+(
+  function() {
+    log <- list(
+      labels = character(),
+      captions = character()
+    )
+    list(
+      register = function(label, caption) {
+        log$labels <<- c(log$labels, label)
+        log$captions <<- c(log$captions, caption)
+        invisible(NULL)
+      },
+      getNumber = function(label) {
+        which(log$labels == label)
+      },
+      getCaption = function(label) {
+        a <- which(log$labels == label)
+        cap <- log$captions[a]
+        cat(sprintf("Fig. %d. %s\n\n---\n",a,cap))
+        invisible(NULL)
+      }
+    )
+  }
+)() -> figCounter
+```
+
+Package version: `r packageVersion("MPSEM")`
+
+
+# Introduction
+
+Package **MPSEM** has functions to simulate evolutionary graphs, instances of
+which can be simple a linear evolutionary sequence, a tree (i.e., phylogeny), or
+reticulated evolutionary graphs (i.e., networks) involving hybridization between
+branches (i.e., lateral gene transfer events). Species evolution has
+historically been modeled as a tree. In a tree, any given species has a single
+ancestor. This model only allows for longitudinal gene transfer, disregarding
+lateral gene transfer processes. The simplicity of phylogeny (i.e., the
+representation of evolution as a tree) overlooks any lateral evolutionary
+processes such as recombination (new genomes are reconstituted through the
+sorting and crossing-over of existing genes), hybridization (reproductive events
+involving relatively distant parents), the exchange of independent transferable
+elements (e.g., plasmides), and so on. Representing evolution as a reticulated
+graph (as opposed to a tree), allows for the representation of lateral gene
+transfer, at the price of a greater complexity.
+
+Here, we will explain how to use MPSEM to generate random graphs and simulate
+the evolution of DNA sequences and traits along them. The data thus generated,
+for known graphs, and under controlled processes, are then used for various
+purposes. For instance, they can be used in testing the performance of
+quantitative method, for developing supervised and non-supervised machine
+learning methods for the estimation of evolutionary distances, graph structure,
+and so on.
+
+
+# Usage
+
+Before anything else, package **MPSEM** has to be loaded as follows:
+
+```{r}
+library(MPSEM)
+```
+
+## Molecular (DNA) evolution simulator
+
+**MPSEM** simulates DNA sequence evolution as a Markov process whereby the
+four nucleotides (**A**, **G**, **C**, or **T**) shift from one value to another
+with probabilities defined by a shift rate matrix $\mathbf{Q}$, which is defined
+as follows:
+
+$$
+\mathbf{Q} = \begin{bmatrix}
+-\Sigma_\mathrm{A} & r_\mathrm{AG} \pi_\mathrm{G} & r_\mathrm{AC} \pi_\mathrm{C} & r_\mathrm{AT} \pi_\mathrm{T} \\
+r_\mathrm{GA} \pi_\mathrm{A} & -\Sigma_\mathrm{G} & r_\mathrm{GC} \pi_\mathrm{C} & r_\mathrm{GT} \pi_\mathrm{T} \\
+r_\mathrm{CA} \pi_\mathrm{A} & r_\mathrm{CG} \pi_\mathrm{G} & -\Sigma_\mathrm{C} & r_\mathrm{CT} \pi_\mathrm{T} \\
+r_\mathrm{TA} \pi_\mathrm{A} & r_\mathrm{TG} \pi_\mathrm{G} & r_\mathrm{TC} \pi_\mathrm{C} & -\Sigma_\mathrm{T}
+\end{bmatrix},
+$$
+
+where $r_{x,y}$ is the raw shift rate from state $x$ to state $y$,
+$\pi_\mathrm{x}$ is the equilibrium relative frequency of DNA base $x$, and
+$\Sigma_x$ is the sum of the off-diagonal elements on row $x$ (i.e.,
+$\Sigma_\mathrm{A} = r_\mathrm{AG} \pi_\mathrm{G} + r_\mathrm{AC} \pi_\mathrm{C} + r_\mathrm{AT} \pi_\mathrm{T}$,
+$\Sigma_\mathrm{G} = r_\mathrm{GA} \pi_\mathrm{G} + r_\mathrm{GC} \pi_\mathrm{C} + r_\mathrm{GT} \pi_\mathrm{T}$
+and so on). The sum of nucleotide equilibrium (relative) frequencies is $1$ and
+the values of the $12$ $r_\mathrm{xy}$ coefficients involved in shifts among the
+nucleotides are standardized to an average of $1$. These two properties ensure 
+the standardization of $\mathbf{Q}$. **MPSEM** also simulates the insertion and
+deletion of nucleotides. That simulation is carried out by adding gaps
+(${\text -}$) to the sequence and allowing each gap to shift into a nucleotide,
+thereby simulating an insertion, or each nucleotide to turn into a gap, thereby
+simulating a deletion. The shift rate matrix used to simulate that process is
+defined as follows:
+
+$$
+\mathbf{Q^*} = \begin{bmatrix}
+-\Sigma_\mathrm{\text -} & r_\mathrm{{\text -} N} (1 - \pi_{\text -}) \\
+r_\mathrm{N {\text -}} \pi_{\text -} & \mathbf{Q} (1 - \pi_{\text -})
+\end{bmatrix},
+$$
+
+where $r_\mathrm{{\text -} N}$ and $r_\mathrm{N {\text -}}$ are the raw
+nucleotide insertion and deletion rates, respectively, and $\pi_{\text -}$ is
+the equilibrium relative gap frequency in the sequence. The resulting
+$5 \times 5$ shift matrix is defined as follows:
+
+$$
+\mathbf{Q^*} = \begin{bmatrix}
+-\Sigma_\mathrm{{\text -}} & r_\mathrm{{\text -} A} \pi_\mathrm{A} (1 - \pi_{\text -}) & r_\mathrm{{\text -} G} \pi_\mathrm{G} (1 - \pi_{\text -}) & r_\mathrm{{\text -} C} \pi_\mathrm{C} (1 - \pi_{\text -}) & r_\mathrm{{\text -} T} \pi_\mathrm{T} (1 - \pi_{\text -}) \\
+r_\mathrm{A {\text -}} \pi_{\text -} & -\Sigma_\mathrm{A} & r_\mathrm{AG} \pi_\mathrm{G} (1 - \pi_{\text -}) & r_\mathrm{AC} \pi_\mathrm{C} (1 - \pi_{\text -}) & r_\mathrm{AT} \pi_\mathrm{T} (1 - \pi_{\text -}) \\
+r_\mathrm{G {\text -}} \pi_{\text -} & r_\mathrm{GA} \pi_\mathrm{A} (1 - \pi_{\text -}) & -\Sigma_\mathrm{G} & r_\mathrm{GC} \pi_\mathrm{C} (1 - \pi_{\text -}) & r_\mathrm{GT} \pi_\mathrm{T} (1 - \pi_{\text -}) \\
+r_\mathrm{C {\text -}} \pi_{\text -} & r_\mathrm{CA} \pi_\mathrm{A} (1 - \pi_{\text -}) & r_\mathrm{CG} \pi_\mathrm{G} (1 - \pi_{\text -}) & -\Sigma_\mathrm{C} & r_\mathrm{CT} \pi_\mathrm{T} (1 - \pi_{\text -}) \\
+r_\mathrm{T {\text -}} \pi_{\text -} & r_\mathrm{TA} \pi_\mathrm{A} (1 - \pi_{\text -}) & r_\mathrm{TG} \pi_\mathrm{G} (1 - \pi_{\text -}) & r_\mathrm{TC} \pi_\mathrm{C} (1 - \pi_{\text -}) & -\Sigma_\mathrm{T}
+\end{bmatrix},
+$$
+
+where $r_\mathrm{{\text -} x}$ and $r_\mathrm{x {\text -}}$ are the (raw) rates
+of nucleotide $\mathrm{x}$ insertion and deletion, respectively. The sum of the
+rows of $\mathbf{Q^*}$ is $0$ by construct. The probability density matrix
+$\mathbf{P}$ is obtained from the shift rate matrix $\mathbf{Q^*}$ as follows:
+
+$$
+\mathbf{P} = e^{\rho t \mathbf{Q^*}}
+$$
+
+where $e$ is Euler's number, $t$ is an amount of time, and $\rho$ is the mean
+shift rate over all possible shifts, with the rows of $\mathbf{P}$ indeed
+summing to $1$. **MPSEM** implements eight common DNA evolution models, all
+of which being time-reversible ($r_\mathrm{xy} = r_\mathrm{yx}$ for all
+nucleotides $\mathrm{x}$ and $\mathrm{y}$). This task is accomplished by
+function `DNArate()`, which is called as follows:
+
+```{r}
+Q <- DNArate(model="JC69", piGap=0.3, insertionRate=0.1, deletionRate=0.1)
+Q
+```
+
+This shift rate matrix corresponds to the @JC69model DNA evolution model, with
+and equilibrium gap frequency of $30\%$ and insertion and deletion rates of
+$0.1$. **MPSEM** implements molecular evolution models using function
+`molEvolSim()`, which is given the shift rate matrix as its first argument, in
+addition to values of time step ($t$, argument `step`) and mean shift rate
+($\rho$, argument `rho`). A DNA molecular simulator is implemented as follows:
+
+```{r}
+em1 <- molEvolSim(Q, step = 1, rho = 5)
+```
+
+The function returns a list with three functions: `$recalculate(t, rho)`
+recalculates the simulator for new values of $t$ and $\rho$, `$evolve(N)` take a
+nucleotide value (`raw`) and returns a nucleotide value drawn from the posterior
+probability distribution of the molecular evolution model, whereas `$getMt()`
+returns the shift probability matrix of the simulator. For instance:
+
+```{r}
+em1$getMt()
+```
+
+is the shift probability matrix for a time step of $1$ and an mean shift rate
+of $5$, if we recalculate the simulator for a time step of $0.1$:
+
+```{r}
+em1$recalculate(0.1, 5)
+em1$getMt()
+```
+
+the shift probabilities decrease as less time is allowed for a change to take
+place, whereas if we increase the time step to $5$:
+
+```{r}
+em1$recalculate(5, 5)
+em1$getMt()
+```
+
+the shift probabilities increase as more time is allowed for a change to take
+place.
+
+> In `R`, it is more efficient when playing with single characters of a
+> character string to work with a `raw` vector. A raw vector enables one to
+> access single character with regular subset operators (`[]`) rather than using
+> string operators. Function `rawToChar()` is used to turn a raw vector into a
+> string.
+
+In the following examples, let us create start with an `"A"` at time $0$ and
+evolve it for $100$ time steps of $1$:
+
+```{r}
+set.seed(1324987)                 ## To obtain a consistent example
+em1$recalculate(1, 5)             ## Recalculate for a time step of 1
+s <- raw(101)                     ## For storage
+s[1] <- charToRaw("A")            ## Initialize with and "A"
+for(i in 2:101)                   ## Simulation loop:
+  s[i] <- em1$evolve(s[i - 1]) 
+rawToChar(s)                      ## Show the sequence
+```
+
+This example show multiple cases of nucleotide conservation (two or more
+repetitions of the same value), shifts, insertion deletion and insertions.
+
+The assumption that all sites of a DNA sequence evolve at the same rate
+not supported in practice. To obtain a credible simulation, it is more suitable
+to generate multiple values and assign them to individual sites. **MPSEM** has a
+function called `drawEvolRate()` which draws random values from a gamma
+distributions as follows:
+
+```{r}
+er <- drawEvolRate(NN=70, gamma.shape=3, gamma.scale=2e-2)
+er
+```
+
+where `NN` is the number of sites of the sequence, `gamma.shape` is the shape
+parameter of the gamma distribution from which the values are drawn, and
+`gamma.scale` is the latter's scale parameter. **MPSEM** also has a function
+called `drawDNASequence()` to help in drawing initial random sequences from
+which to initiate simulation process. It is called as follows:
+
+```{r}
+set.seed(13987463)    ## Setting the RNG seed to obtain consistent results.
+
+## Generating a random DNA sequence
+isq <- drawDNASequence(NN=length(er), piGap=0.2, pi=c(0.35,0.15,0.15,0.35))
+rawToChar(isq)        ## Showing the random DNA sequence
+```
+
+where `piGap` is $\pi_{\text -}$ and `pi` contains $\pi_\mathrm{A}$,
+$\pi_\mathrm{G}$, $\pi_\mathrm{C}$, and $\pi_\mathrm{T}$. The random DNA
+segment drawn is therefore slightly AT-rich. Here, we will simulate the
+evolution of this initial sequence assuming that all sites share the same shift
+rate matrix $\mathbf{Q^*}$, but that each site has its own value of the mean
+shift rate ($\rho$). To do so, we need to create a list of molecular evolution
+simulators as follows:
+
+```{r}
+nesl <- list()              ## A list of nucleotide evolution simulators
+
+## Initialize each simulator with a different mean shift rate:
+for(j in 1:length(er))
+  nesl[[j]] <- molEvolSim(Q, step = 1, rho = er[j])
+```
+
+To evolve the sequence, from its initial state using these molecular evolution
+simulators, we call each simulator's function `$evolve()` function on its site
+as follows:
+
+```{r}
+isq2 <- raw(length(isq))                  ## For storing the second sequence
+for(j in 1:length(isq))                   ## For each site j
+  isq2[j] <- nesl[[j]]$evolve(isq[j])     ## Evolve the site
+rawToChar(isq)                            ## Show the first sequence
+rawToChar(isq2)                           ## Show the second sequence
+```
+
+To evolve the sequence for even more steps, the time steps are themselves
+iterated into a second loop as follows:
+
+```{r, fig.width = 7.0}
+stbl <- matrix(raw(),51,length(er))           ## For storing 51 sequences
+stbl[1,] <- isq                               ## Initial sequence
+stbl[2,] <- isq2                              ## Second sequence
+
+## Simulation loops from squence 3 to 51:
+for(i in 3:nrow(stbl))                              ## Loop for each sequence i
+  for(j in 1:ncol(stbl))                            ## Loop for each site j
+    stbl[i,j] <- nesl[[j]]$evolve(stbl[i - 1,j])    ## Simulate the shifts
+
+## Showing the DNA sequences:
+stbl %>%
+  concatenate %>%
+  show.sequence
+```
+
+In this code example, we introduced two more functions from **MPSEM**,
+namely `concatenate()` and `show.sequence()`. Functions `concatenate()` calls
+`rawToChar()` row by row on a `raw` matrix while optionally discarding a list
+of characters (most generally the gap; ``"-"`), whereas `show.sequence()` is a
+graphical function for showing sets of DNA sequences. For instance, one may
+display the sequences while removing the gaps as follows:
+
+```{r, fig.width = 7.0}
+## Display the DNA sequences without the gaps:
+stbl %>%
+  concatenate(discard="-") %>%
+  show.sequence
+```
+
+This is how sequences obtained from DNA sequencing would normally appear. Having
+a set of sequences aligned by construct comes in handy when assessing the
+performance of DNA sequence alignment algorithm and software. When necessary,
+the sequences may be exported as a FASTA formal text file using another
+**MPSEM** package function called `write.fasta()` as follows:
+
+```{r}
+stbl %>%
+  concatenate(discard="-") %>%
+  write.fasta(file="Test.fasta")
+```
+
+This file can be accessed by other software, for instance, `R` package **ape**:
+
+```{r}
+if(require(ape)) {
+  tmp <- read.dna(file="Test.fasta", format="fasta", as.character=TRUE)
+  tmp[1:5]
+}
+  
+```
+
+among others.
+
+```{r, echo=FALSE, results='hide'}
+file.remove("Test.fasta")
+rm(tmp)
+```
+
+## Trait evolution simulator
+
+**MPSEM** simulates quantitative traits as an Ornstein-Uhlenbeck process. The
+Ornstein-Uhlenbeck process is analogous to a Brownian motion (diffusion)
+process, but involves the mean and variance of the random fluctuations being
+conditioned by the difference between the value and an optimum value in such a
+way as to constrain the value to fluctuate more or less closely about that
+optimum. The process is described formally as follows:
+
+$$
+x_t \sim \mathcal{N} \left(x_0 e^{-\alpha t} + (1 - e^{-\alpha t}) x_{opt}, \sigma \sqrt{\frac{(1 - e^{-2\alpha t})}{2 \alpha}} \right),
+$$
+
+where $x_0$ and $x_t$ are the trait value at time $0$ and after an amount of
+time $t$, respectively, $x_{opt}$ is the optimal trait value, $\alpha$ is the
+selection rate, and $\sigma$ is the standard deviation of a Gaussian process
+denoted as $\mathcal{N}(\mu,\sigma)$ (where $\mu$ is the mean). When
+$\alpha = 0$ the process becomes $x_t \sim \mathcal{N}(x_0,\sigma)$ as the
+process becomes purely diffusive with a rate described solely by $\sigma$ and no
+optimum exist.
+
+In **MPSEM**, trait evolution is simulated using function `traitEvolSim()`.
+Minimally, it needs three arguments as is called as follows:
+
+```{r}
+traitEvolSim(
+    name = "Neutral",   ## Name of the trait
+    sigma = 2.5,        ## Standard deviation (e.g., Mean leaf width in mm/Ma)
+    step = 0.05         ## Simulation time step (e.g. Ma)
+  ) -> ts_n
+```
+
+When called in this way, $\alpha = 0$ and the trait evolves according to a
+purely diffusive process. The trait evolution is simulated as follows:
+
+```{r, fig.width = 7.0}
+trait <- numeric(1001)      ## For storing the values
+trait[1] <- 40              ## Initial trait value
+
+## Update the trait value at time t using the value at time t - 1:
+for(i in 2:length(trait))
+  trait[i] <- ts_n$updateValue(trait[i - 1])
+
+plot(y = trait, x=0.05*(0:1000), type="l", las=1, ylab="Mean leaf width (mm)",
+     xlab="Time (Ma)")
+```
+
+When argument $\alpha > 0$ (function call with `alpha = 1`), argument `optima`
+needs to be provided value(s) as follows:
+
+```{r}
+traitEvolSim(
+    name = "OUsingle",    ## Name of the trait
+    alpha = 1,            ## The selection rate
+    sigma = 2.5,          ## Standard deviation (e.g., Mean leaf width in mm/Ma)
+    optima = 10,          ## A single trait optimum
+    step = 0.05           ## Simulation time step (e.g. Ma)
+  ) -> ts_OUs
+```
+
+Now, the simulator has a single optimum value of $10\,\mathrm{mm}$. Calculations
+are performed in a similar fashion as follows:
+
+```{r, fig.width = 7.0}
+trait <- numeric(1001)      ## For storing the values
+trait[1] <- 20              ## Initial trait value
+
+## Update the trait value at time t using the value at time t - 1:
+for(i in 2:length(trait))
+  trait[i] <- ts_OUs$updateValue(trait[i - 1])
+
+plot(y = trait, x=0.05*(0:1000), type="l", las=1, ylab="Mean leaf width (mm)",
+     xlab="Time (Ma)")
+abline(h=10, lty=3)
+```
+
+When more than one optima are provided through argument `optima`, a shift
+intensity matrix must also be provided using argument `transition` as follows:
+
+```{r}
+traitEvolSim(
+    name = "OUmultiple",  ## Name of the trait
+    alpha = 1,            ## The selection rate
+    sigma = 2.5,          ## Standard deviation (e.g., Mean leaf width in mm/Ma)
+    optima = c(10,15,20), ## Three trait optima
+    ## The trait optima shift intensity matrix:
+    transition = matrix(c(NA,0.01,0,0.01,NA,0.01,0,0.01,NA), 3, 3),
+    step = 0.05           ## Simulation time step (e.g. Ma)
+  ) -> ts_OUm
+```
+
+Calculation involves keeping a value (or sets of values) of the state index,
+which is updated using member function `$updateState()`, and is provided to
+member function `$updateValue()` as follows:
+
+```{r, fig.width = 7.0}
+trait <- numeric(1001)      ## For storing the values
+trait[1] <- 20              ## Initial trait value
+state <- integer(1001)      ## For storing the optima
+state[1] <- 1               ## Initial trait optimum
+
+## Update the optimum at time t using the value at time t - 1, then
+## update the trait value at time t using the value at time t - 1:
+for(i in 2:length(trait)) {
+  state[i] <- ts_OUm$updateState(state[i - 1])
+  trait[i] <- ts_OUm$updateValue(trait[i - 1], state[i])
+}
+
+plot(y = trait, x=0.05*(0:1000), type="l", las=1, ylab="Mean leaf width (mm)",
+     xlab="Time (Ma)")
+lines(x=0.05*(0:1000), y=c(10,15,20)[state], col="black", lty=3L)
+```
+
+### Semi-quantitative or qualitative traits
+
+Whereas these function simulate the evolution of quantitative traits, it is
+straightforward to transform them into semi-quantitative or qualitative traits.
+For instance, one may apply thresholds to transform the quantitative variables
+into a semi-quantitative variables. To generate a binary variables (e.g., that
+absence or presence of a feature), one can choose a threshold value at, and
+above, which the trait is a presence and below which the trait is an absence.
+For an $n$-class qualitative trait, $N$ deviates can be generated, one for each
+of the classes, with deviate with the maximum value being giving the state of
+the trait. The following code exemplifies the generation of an ordered, a
+binary, and a five-category qualitative trait in `R` using simulated
+quantitative traits:
+
+```{r, fig.width = 7.0}
+## Generate five random deviates, (n = 300 each) using a neutral evolution
+## simulator:
+traits <- matrix(NA, 300, 5)
+traits[1,] <- c(0,0,1,0,0)
+
+for(i in 1:5)
+  for(j in 2:nrow(traits))
+    traits[j,i] <- ts_n$updateValue(traits[j - 1,i])
+
+## Simulate an ordered trait:
+traits[,1] %>%
+  sapply(
+    function(x,b) {
+      i <- sum(x > b)
+      ifelse(i, i, 1)
+    },
+    b = quantile(.,seq(0,1,length.out=6))   ## For five classes
+  ) %>%
+  ordered -> var_ordered
+levels(var_ordered) <- c("tiny","small","normal","large","huge")
+pp <- par(no.readonly = TRUE)
+par(mar=c(5,7,2,2))
+plot(y=var_ordered, x=seq(0,50,length.out=length(var_ordered)), type="l",
+     yaxt="n", xlab="time (Ma)", ylab="Value\n")
+axis(2, at=1:5, labels=levels(var_ordered), las=1)
+par(pp)
+
+## Simulate a binary trait:
+traits[,1] %>%
+  {. > median(.)} -> var_binary
+pp <- par(no.readonly = TRUE)
+par(mar=c(5,7,2,2))
+plot(y=var_binary, x=seq(0,50,length.out=length(var_binary)), type="l",
+     yaxt="n", xlab="time (Ma)", ylab="Value\n")
+axis(2, at=c(0,1), labels=c("Absent","Present"), las=1)
+par(pp)
+
+## Simulate a qualitative trait:
+traits %>%
+  apply(
+    1L,
+    which.max
+  ) %>%
+  c("blue","green","red","yellow","purple")[.] %>%
+  as.factor -> var_qualitative
+pp <- par(no.readonly = TRUE)
+par(mar=c(5,7,2,2))
+plot(y=var_qualitative, x=seq(0,50,length.out=length(var_qualitative)),
+     type="l", yaxt="n", xlab="time (Ma)", ylab="Value\n")
+axis(2, at=1:5, labels=levels(var_qualitative), las=1)
+par(pp)
+```
+
+## Evolutionary network simulation
+
+Whereas simulator generator functions `molEvolSim()` and `traitEvolSim()` allows
+us to simulate the evolution of DNA sequences and quantitative traits, we now
+have to apply them to more or less complex evolutionary graphs. Function
+`randomGraph()` is a random graph simulator that allows one to simulate
+different types of graphs using a process of single vertex addition. Its first
+argument, `NV` is the number of vertices in the graph to be generated. In a
+nutshell `randomGraph()` proceeds from a single origin vertex by adding one
+vertex at a time and connecting it with the other vertices of the graph
+following different approaches. At its creation, any vertex (including the
+origin vertex) is given a maximum allowable number of outgoing edges (i.e.,
+children). That number may be a constant or a random number, and is generated by
+a function passed as an argument called `NC`. Every time an edge from a given
+vertex is created, that number is decremented by $1$ until it reaches $0$, at
+which point that vertex is no longer allowed to have any new edge going out from
+it. The number of incoming edges (i.e., parents) of a newly created vertex is
+obtained from a function passed as argument `NP` and must minimally be $1$. A
+function is also passed to `randomGraph()` as its argument `timestep` and
+returns the evolutionary distance of any edge generated during the process. The
+last function that needs to be passed to `randomGraph()` as its argument
+`maxDist` returns the maximum distance allowed between the parents of a new
+vertex. This number constrains lateral transfers to vertices that are not too
+dissimilar, thereby enforcing a barrier to reticulated evolution. Function
+`randomGraph()` also accepts an arbitrary number of named arguments (i.e.,
+`...`) and will pass them to the functions given as arguments `NC`, `NP`,
+`timestep`, and `maxDiss`. For simplicity, it is recommended that these
+functions have a `...` argument in order to filter out any unneeded arguments,
+in addition to its own arguments, ideally with default values. For instance,
+a dichotomic tree is generated as follows:
+
+```{r, fig.height = 5, fig.width=7.15}
+randomGraph(
+  NV = 50,
+  NC = function(...) 2,
+  NP = function(...) 1,
+  timestep = function(ts_min, ts_max, ...) runif(1, ts_min, ts_max),
+  maxDist = function(...) NULL,
+  ts_min = 2,
+  ts_max = 5,
+  verbose = FALSE
+) -> gr_dich
+
+gr_dich
+
+plot(gr_dich, cex.min=3, cex.lab=0.5)
+```
+
+Here, the timestep is taken from a uniform random distribution with minimum
+value $2$ and maximum value $5$, whereas the maximum number of children per
+vertex is set to $2$ and the maximum number of parents per vertex is set to $1$
+(i.e., the graph is a tree). Both functions `NV` and `NP` are given arbitrary
+arguments `ts_min` and `ts_max`, but none will use them, whereas `timestep()`
+uses both of them to generate random edge distances. `maxDist()` also disregards 
+`ts_min` and `ts_max` as it consistently returns `NULL`. Actually, since only a
+single incoming edge is ever used by the simulation process `maxDist()` will
+never be executed. Another way to generate a random tree is function `rtree`
+from package **ape**. For instance:
+
+```{r, fig.height = 5, fig.width=7.15}
+rtree(25) %>%
+  as.graph -> gr_rtree
+
+plot(gr_rtree, cex.min=1, show.vertex.labels = FALSE)
+```
+
+Contrary to the tree generated using function `randomGraph`, The tree generated
+by **ape**'s function `rtree` is strictly dichotomic. Finally, a random
+reticulated graph is generated as follows:
+
+```{r, fig.height = 5, fig.width=7.15}
+randomGraph(
+  NV = 50,
+  NC = function(lambda_child, ...) 1 + rpois(1, lambda_child),
+  NP = function(lambda_parent, ...) 1 + rpois(1, lambda_parent),
+  timestep = function(ts_min, ts_max, ...) runif(1, ts_min, ts_max),
+  maxDist = function(max_anc, ...) runif(1, 0, max_anc),
+  lambda_child = 3.0,
+  lambda_parent = 3.0,
+  ts_min = 5,
+  ts_max = 12,
+  max_anc = 13,
+  verbose = FALSE
+) -> gr_ret
+
+gr_ret
+
+plot(gr_ret, cex.min=3, cex.lab=0.5)
+```
+
+Here, the numbers of children and parents in excess of $1$ are drawn from
+Poisson distributions with means `lambda_child` and `lambda_parent`,
+respectively, and maximum distance between parents is drawn from an uniform
+random distribution with minimum value $0$ and maximum value `max_anc`. For
+plotting, the reticulated graph is coerced into a tree using method `as.phylo`
+and is plotted using black segments, whereas the edges discarded during the
+coercion process are drawn over the tree using red arrows.
+
+We can now simulate DNA sequences and trait evolution on these random graphs
+functions `simulateSequence` and `simulateTrait`. These function will invoke
+DNA sequence and trait evolution models over a graph, taking the edge distances
+as the evolutionary time. Function `simulateSequence` is called as follows:
+
+```{r, fig.width=7.15}
+gr_ret %>%
+  simulateSequence(
+    Q = DNArate(model="K80", piGap=0.25, insertionRate=0.15, deletionRate=0.15),
+    sqn = drawDNASequence(NN=200, piGap=0.25, pi=c(0.3,0.2,0.2,0.3)),
+    rate = drawEvolRate(NN=200, gamma.shape=4, gamma.scale=4e-4),
+    a = 1
+  ) -> seq_ret
+
+seq_ret %>%
+  concatenate(discard="-") %>%
+  show.sequence
+```
+
+This function as the following arguments:
+
+`x`
+: A graph-class object on which the simulation is carried out
+
+`Q`
+: A shift rate matrix generated by function `DNArate`
+
+`sqn`
+: An initial DNA sequence such as the ones generated by function
+`drawDNASequence`.
+
+`rate`
+: A vector of mean evolution rate for each of the nucleotides that can be
+obtained from `drawEvolRate`
+
+`weighting`
+: a weighting function that assigns the contributions of multiple parent
+vertices from the edge distances (more on below)
+
+`...`
+: further arguments to be internally passed to the `weighting` function.
+
+The `weighting` function takes the (edge) distances from the parent vertices and
+return contribution weights of these parents on the descendant vertex. These
+weights thus had to sum to $1$ in every cases. The default function is the
+following:
+
+$$
+w_a(d_i) = \frac{d_i^{-a}}{\sum_{i=1}^n d_i^{-a}},
+$$
+
+where $a$ is a parameter that dictates whether all vertices have the same
+weights ($a=0$, the default), weights proportional with the inverse distance
+($a=1$), proportional with the inverse square distance ($a=2$), and so on. In
+the example above, $a=1$ and vertex weights were proportional with the inverse
+edge distance. Custom contribution weighting function can be used in the place
+of this default.
+
+Function `simulateTrait` is called as follows:
+
+```{r, fig.height = 5, fig.width=7.15, eval=FALSE}
+gr_ret %>%
+  simulateTrait(
+    tem = ts_n,
+    value = 0,
+    a = 1
+  ) -> trait_ret_n
+
+trait_ret_n$value
+
+plot(gr_ret, y=trait_ret_n$value, bg=head(rainbow(1200), 1000), cex.min=2,
+     cex.lab=0.3)
+```
+
+to apply neutral trait evolution model contained in object `trait_ret_n`,
+whereas applying the single optimum Ornstein-Uhlenbeck trait evolution model
+contained in object `trait_ret_OUs`, one would proceed as follows:
+
+```{r, fig.height = 5, fig.width=7.15, eval=FALSE}
+gr_ret %>%
+  simulateTrait(
+    tem = ts_OUs,
+    value = 0,
+    a = 1
+  ) -> trait_ret_OUs
+
+trait_ret_OUs$value
+
+plot(gr_ret, y=trait_ret_OUs$value, bg=head(rainbow(1200), 1000), cex.min=2,
+     cex.lab=0.3)
+```
+
+In these two figures, a color scale is used to show the simulated trait values.
+The plot method can also represent values at the vertices using marker size,
+which is suitable for small graphs (see the documentation for the details).
+
+
+
+
+
+
+
+
+
